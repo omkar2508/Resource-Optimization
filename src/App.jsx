@@ -43,6 +43,13 @@ function App() {
         </div>
       </div>
 
+      {/* FAQ Section */}
+      <div className={`bg-primary ${styles.paddingX} ${styles.flexStart}`}>
+        <div className={`${styles.boxWidth}`}>
+          <FAQ/>
+        </div>
+      </div>
+
     </div>
   )
 }

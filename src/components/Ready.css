@@ -1,7 +1,7 @@
 .Ready-section{
     background-color: #59acff;
     color: white;
-    padding: 20px 60px ;
+    padding: 90px 60px ;
     text-align: center;
 }
 
@@ -15,6 +15,7 @@
     background-color:#0066CC;
     color: white;
     font-size: 16px;
+    font-weight: bold ;
     border: none;
     border-radius: 30px;
     cursor: pointer;
@@ -23,4 +24,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+
+.Ready-section button:hover{
+    background-color: white;
+    color: #0066CC;
+    font-weight: bold ;
 }
