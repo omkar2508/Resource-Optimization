@@ -1,7 +1,6 @@
-import './index.css'
-import styles from './style'
-import { Navbar, LandingPage, Features, FAQ, Footer, Login } from './components'
-import Title from './components/Title/Title'
+import './index.css';
+import styles from './style';
+import { Navbar, LandingPage, Features, HowItWorks, Ready, FAQ, Footer, Login } from './components';
 
 function App() {
 
@@ -27,7 +26,20 @@ function App() {
       <div className={`bg-primary ${styles.paddingX} ${styles.flexStart}`}>
         <div className={`${styles.boxWidth}`}>
           <Features/>
-           
+        </div>
+      </div>
+
+      {/* How it Works */}
+      <div className={`bg-primary ${styles.paddingX} ${styles.flexStart}`}>
+        <div className={`${styles.boxWidth}`}>
+          <HowItWorks/>
+        </div>
+      </div>
+
+      {/* Ready Section */}
+      <div className={`bg-primary ${styles.paddingX} ${styles.flexStart}`}>
+        <div className={`${styles.boxWidth}`}>
+          <Ready/>
         </div>
       </div>
 

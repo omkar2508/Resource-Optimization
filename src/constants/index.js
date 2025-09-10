@@ -1,7 +1,10 @@
 // import { people01, people02, people03, facebook, instagram, linkedin, twitter, airbnb, binance, coinbase, dropbox, send, shield, star  } from "../assets";
-import circle1 from '../assets/circle1.png'
-import circle2 from '../assets/circle2.png'
-import circle3 from '../assets/circle3.png'
+import creation from '../assets/creation.png';
+import balancing from '../assets/balancing.png';
+import allocation from '../assets/allocation.png';
+import circle1 from '../assets/circle1.png';
+import circle2 from '../assets/circle2.png';
+import circle3 from '../assets/circle3.png';
 export const navLinks = [
   {
     id: "home",
@@ -24,21 +27,21 @@ export const navLinks = [
 export const features = [
   {
     id: "feature-1",
-    icon: circle1,
+    icon: creation,
     title: "Timetable Generation",
     content:
       "Generate optimized schedules with AI-driven accuracy.",
   },
   {
     id: "feature-2",
-    icon: circle2,
+    icon: balancing,
     title: "Faculty Load Balancing",
     content:
       "Distribute teaching workload with AI-driven fairness.",
   },
   {
     id: "feature-3",
-    icon: circle3,
+    icon: allocation,
     title: "Optimal Room Allocation",
     content:
       "Assign classrooms and labs efficiently based on availability and capacity.",
@@ -48,30 +51,24 @@ export const features = [
 export const HowItWorks = [
   {
     id: "HowItWorks-1",
+    icon: circle1,
+    title: "Upload & Validate",
     content:
-    //Collect & Validate Inputs 
-      "Admin, Faculty, Lab In-Charge and Students upload data and constraints (courses, enrollments, room/lab capacities, faculty availability, break policy). The system validates inputs and flags missing/conflicting information.",
-    // name: "Herman Jensen",
-    // title: "Founder & Leader",
-    // img: people01,
+      "Enter courses, enrollments, room & lab capacities, and availability. System checks for conflicts.",
   },
   {
     id: "HowItWorks-2",
+    icon: circle2 ,
+    title: "AI Optimization",
     content:
-    //AI Optimization & Conflict Resolution
-      "The Optimization Engine runs the AI/optimization model (ILP/OR-Tools, heuristics) to produce an optimal timetable: room allocations, balanced faculty loads, and lab/equipment schedules. It detects clashes, suggests alternatives, and assigns staggered breaks.",
-    // name: "Steve Mark",
-    // title: "Founder & Leader",
-    // img: people02,
+      "Engine generates clash-free timetables, balances loads, and suggests alternatives.",
   },
   {
     id: "HowItWorks-3",
+    icon: circle3 ,
+    title: "Review & Publish",
     content:
-    //Review, Publish & Monitor
-      "Admin/Faculty/Students review the draft, apply manual overrides if needed, then publish the final timetable. The dashboard shows utilization reports and alerts; the system supports re-optimization on changes and ongoing monitoring.",
-    // name: "Kenn Gallagher",
-    // title: "Founder & Leader",
-    // img: people03,
+      "Faculty / admin review, apply changes, and publish with real-time monitoring.",
   },
 ];
 

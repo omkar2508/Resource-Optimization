@@ -1,0 +1,26 @@
+.Ready-section{
+    background-color: #59acff;
+    color: white;
+    padding: 20px 60px ;
+    text-align: center;
+}
+
+.Ready-section h1{
+    margin-bottom: 20px;
+}
+
+.Ready-section button{
+    margin-top: 20px;
+    padding: 14px 25px;
+    background-color:#0066CC;
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    border: white;
+    outline: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
