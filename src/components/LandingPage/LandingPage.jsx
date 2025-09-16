@@ -1,7 +1,7 @@
 import React from 'react';
 import './LandingPage.css';
-import next from '../assets/next-icon.png'
-import hero2 from '../assets/hero2.jpg'
+import next from '../../assets/next-icon.png'
+import hero2 from '../../assets/hero2.jpg'
 
 const LandingPage = () => {
   return (  

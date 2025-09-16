@@ -1,7 +1,7 @@
 import React from 'react';
 import Title from './Title/Title';
 import './HowItWorks.css';
-import {HowItWorks as HowItWorksData} from '../constants'
+import {HowItWorks as HowItWorksData} from '../../constants/index.js'
 
 const HowItWorks = () => {
   return (

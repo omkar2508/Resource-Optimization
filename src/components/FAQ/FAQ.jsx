@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './FAQ.css';
-import { FAQ as FAQDATA } from '../constants';
+import { FAQ as FAQDATA } from '../../constants/index.js';
 
 const FAQ = () => {
   const [isOpenDropdown, setOpenDropdown] = useState(null);
