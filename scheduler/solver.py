@@ -1,6 +1,7 @@
 # scheduler/solver.py
 from collections import defaultdict
 import math
+import random
 import traceback
 
 # Default config
@@ -144,129 +145,115 @@ def find_period_for_slot(class_tt, teacher_tt, yname, div, day_idx, block_size,
     return None, None
 
 def solver_greedy_distribute(payload):
-    """
-    Deterministic greedy scheduler that distributes subjects sensibly across days
-    and respects lunch & teacher non-overlap & daily limits.
-    """
     years = payload.get("years", {})
     teachers = payload.get("teachers", [])
-
-    # dynamic config (per-year may override; we pick first year settings or defaults)
-    periods_per_day = DEFAULT_PERIODS_PER_DAY
-    working_days = DEFAULT_WORKING_DAYS
-    lunch_period = DEFAULT_LUNCH_PERIOD
-    max_per_day = DEFAULT_MAX_PER_DAY
-
-    # try to read from payload global/per-year
-    for ydata in years.values():
-        if ydata.get("periodsPerDay"):
-            periods_per_day = int(ydata.get("periodsPerDay", periods_per_day))
-        if ydata.get("daysPerWeek"):
-            working_days = int(ydata.get("daysPerWeek", working_days))
-        if ydata.get("lunchBreak"):
-            lunch_period = int(ydata.get("lunchBreak", lunch_period))
-    # allow payload override top-level (optional)
-    if isinstance(payload.get("config"), dict):
-        cfg = payload["config"]
-        periods_per_day = int(cfg.get("periodsPerDay", periods_per_day))
-        working_days = int(cfg.get("daysPerWeek", working_days))
-        lunch_period = int(cfg.get("lunchBreak", lunch_period))
-        max_per_day = int(cfg.get("maxPerDay", max_per_day))
-
-    # build maps
-    teachers_map = {t.get("name"): t for t in teachers}
-    teacher_names = [t.get("name") for t in teachers]
-
-    class_tt, teacher_tt = init_empty_struct(years, periods_per_day, working_days, teachers)
-
-    warnings = []
-    # For each year/div and subject, decide days to place and place them
+    rooms = payload.get("rooms", [])
+    
+    # 1. ORCHESTRATE REQUIREMENTS
+    req_pool = []
     for yname, ydata in years.items():
-        divisions = int(ydata.get("divisions", 1))
-        subjects = ydata.get("subjects", [])
+        divs = int(ydata.get("divisions", 1))
+        for div in range(1, divs + 1):
+            for subj in ydata.get("subjects", []):
+                stype = subj.get("type", "Theory")
+                hours = int(subj.get("hours", 1))
+                batches = int(subj.get("batches", 1)) if stype != "Theory" else 1
+                
+                for b_idx in range(1, batches + 1):
+                    req_pool.append({
+                        "year": yname, "div": div, "code": subj["code"],
+                        "type": stype, "batch": b_idx if stype != "Theory" else None,
+                        "remaining": hours, "periods_today": 0 
+                    })
 
-        for div in range(1, divisions + 1):
-            for subj in subjects:
-                code = subj.get("code")
-                typ = subj.get("type", "Theory")
-                hours = int(subj.get("hours", 0))
+    # 2. INITIALIZE TRACKERS
+    max_p = max([int(y.get("periodsPerDay", 6)) for y in years.values()])
+    class_tt = {}
+    teacher_tt = {t["name"]: {d: {p: [] for p in range(1, max_p + 1)} for d in DAY_NAMES} for t in teachers}
+    room_tt = {r["name"]: {d: {p: [] for p in range(1, max_p + 1)} for d in DAY_NAMES} for r in rooms}
+    
+    # Tracker for daily theory lectures per division
+    daily_theory_count = {} 
 
-                # determine block size (labs)
-                if typ and typ.lower() == "lab":
-                    block_size = 2
-                    blocks_required = max(1, hours // block_size)
-                else:
-                    block_size = 1
-                    blocks_required = hours
+    for yname, ydata in years.items():
+        divs = int(ydata.get("divisions", 1))
+        class_tt[yname] = {d: {day: {p: [] for p in range(1, max_p + 1)} for day in DAY_NAMES} for d in range(1, divs + 1)}
+        for d in range(1, divs + 1):
+            daily_theory_count[f"{yname}_{d}"] = {day: 0 for day in DAY_NAMES}
 
-                # choose days deterministically
-                chosen_day_idxs = choose_days_for_hours(blocks_required, working_days)
+    # 3. SCHEDULING ENGINE
+    for day in DAY_NAMES:
+        for req in req_pool: req["periods_today"] = 0
 
-                placed = 0
-                for day_idx in chosen_day_idxs:
-                    if placed >= blocks_required:
-                        break
+        for p in range(1, max_p + 1):
+            random.shuffle(req_pool)
 
-                    # Try to find a period & teacher
-                    p, teacher_name = find_period_for_slot(
-                        class_tt, teacher_tt, yname, div, day_idx, block_size,
-                        periods_per_day, lunch_period, teacher_names, max_per_day, code, teachers_map
-                    )
+            for req in req_pool:
+                if req["remaining"] <= 0: continue
+                
+                yname, div = req["year"], req["div"]
+                ydata = years[yname]
+                class_key = f"{yname}_{div}"
+                
+                if day in ydata.get("holidays", []): continue
+                if p > int(ydata.get("periodsPerDay", 6)) or p == int(ydata.get("lunchBreak", 4)): continue
+                
+                # --- CONSTRAINT: MAX 3 THEORY LECTURES PER DAY ---
+                if req["type"] == "Theory" and daily_theory_count[class_key][day] >= 3:
+                    continue # Skip theory if cap reached, allowing labs/tutorials to fill rest of day
+                
+                # --- CONSTRAINT: MAX 1HR PER SPECIFIC SUBJECT PER DAY ---
+                if req["periods_today"] >= int(ydata.get("maxDailyPerSubject", 1)): continue
 
-                    # If not found, try relaxing max_per_day for this teacher temporarily
-                    if p is None:
-                        # try allowing teachers to exceed daily load by 1, by scanning again
-                        for tname in teacher_names:
-                            if not teacher_can_teach_entry(teachers_map.get(tname, {}), code):
-                                continue
-                            # check teacher free for block ignoring daily load
-                            day_name = DAY_NAMES[day_idx]
-                            for p_try in range(1, periods_per_day + 1):
-                                if p_try == lunch_period:
-                                    continue
-                                if block_size > 1 and (p_try + block_size - 1) > periods_per_day:
-                                    continue
-                                class_free = all(len(class_tt[yname][div][day_name][bp]) == 0 and bp != lunch_period for bp in range(p_try, p_try+block_size))
-                                teacher_free = all(len(teacher_tt[tname][day_name][bp]) == 0 and bp != lunch_period for bp in range(p_try, p_try+block_size))
-                                if class_free and teacher_free:
-                                    p = p_try
-                                    teacher_name = tname
-                                    break
-                            if p is not None:
-                                break
+                code, stype, batch = req["code"], req["type"], req["batch"]
+                current_occupants = class_tt[yname][div][day][p]
+                
+                # Exclusion Logic
+                if any(occ["type"] == "Theory" for occ in current_occupants): continue
+                if stype == "Theory" and len(current_occupants) > 0: continue
+                if batch and any(occ["batch"] == batch for occ in current_occupants): continue
+                
+                # Teacher Check
+                eligible_teachers = [t for t in teachers if any(s["code"] == code for s in t.get("subjects", []))]
+                available_teacher = next((t["name"] for t in eligible_teachers if not teacher_tt[t["name"]][day][p]), None)
+                if not available_teacher: continue
 
-                    if p is None:
-                        warnings.append(f"Could not place subject {code} for {yname} div{div} on day {DAY_NAMES[day_idx]}")
-                        continue
+                # --- ADVANCED ROOM ALLOCATION ---
+                available_room = None
+                
+                if stype == "Lab":
+                    # Labs STRICTLY need Lab rooms
+                    available_room = next((r["name"] for r in rooms if r["type"] == "Lab" and not room_tt[r["name"]][day][p]), None)
+                
+                elif stype == "Tutorial":
+                    # Priority 1: Tutorial Room
+                    available_room = next((r["name"] for r in rooms if r["type"] == "Tutorial" and not room_tt[r["name"]][day][p]), None)
+                    # Priority 2: Classroom (Fallback)
+                    if not available_room:
+                        available_room = next((r["name"] for r in rooms if r["type"] == "Classroom" and not room_tt[r["name"]][day][p]), None)
+                
+                else: # Theory
+                    available_room = next((r["name"] for r in rooms if r["type"] == "Classroom" and not room_tt[r["name"]][day][p]), None)
 
-                    # place the block
-                    day_name = DAY_NAMES[day_idx]
-                    for bp in range(p, p + block_size):
-                        # class cell
-                        class_tt[yname][div][day_name][bp].append({
-                            "subject": code,
-                            "teacher": teacher_name
-                        })
-                        # teacher cell
-                        teacher_tt[teacher_name][day_name][bp].append({
-                            "subject": code,
-                            "year": yname,
-                            "division": div
-                        })
-                    placed += 1
+                if not available_room: continue
 
-                if placed < blocks_required:
-                    warnings.append(f"Subject {code} for {yname} div{div} required {blocks_required} blocks but only placed {placed}")
+                # ALLOCATE
+                entry = {"subject": code, "teacher": available_teacher, "room": available_room, "batch": batch, "type": stype}
+                class_tt[yname][div][day][p].append(entry)
+                teacher_tt[available_teacher][day][p].append({"subject": code, "year": yname, "division": div, "room": available_room, "batch": batch})
+                room_tt[available_room][day][p].append({"subject": code, "year": yname, "division": div})
+                
+                req["remaining"] -= 1
+                req["periods_today"] += 1
+                if stype == "Theory":
+                    daily_theory_count[class_key][day] += 1
 
-    status = "success" if not warnings else "partial"
-    result = {
+    return {
+        "status": "success" if not any(r['remaining'] > 0 for r in req_pool) else "partial",
         "class_timetable": class_tt,
         "teacher_timetable": teacher_tt,
-        "status": status
+        "warnings": [f"{r['year']} Div {r['div']} {r['code']} B{r['batch']} missing {r['remaining']} hrs" for r in req_pool if r["remaining"] > 0]
     }
-    if warnings:
-        result["warnings"] = warnings
-    return result
 
 def solve_timetable(payload):
     """

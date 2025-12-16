@@ -1,18 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { assets } from "../assets/assets";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 
 const Login = () => {
-  const [state, setState] = useState("Sign Up");
+  const location = useLocation();
   const navigate = useNavigate();
+  
+  // Check if we should show signup or login based on URL state
+  const initialState = location.state?.mode === "signup" ? "Sign Up" : "Login";
+  const [state, setState] = useState(initialState);
 
   const { login, signup } = useAppContext();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Update state when location changes
+  useEffect(() => {
+    if (location.state?.mode === "signup") {
+      setState("Sign Up");
+    } else if (location.state?.mode === "login") {
+      setState("Login");
+    }
+  }, [location]);
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
@@ -108,12 +121,14 @@ const Login = () => {
             />
           </div>
 
-          <p
-            className="mb-4 text-indigo-400 cursor-pointer hover:underline"
-            onClick={() => navigate("/reset-password")}
-          >
-            Forgot password?
-          </p>
+          {state === "Login" && (
+            <p
+              className="mb-4 text-indigo-400 cursor-pointer hover:underline"
+              onClick={() => navigate("/reset-password")}
+            >
+              Forgot password?
+            </p>
+          )}
 
           <button className="w-full py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white font-medium">
             {state}
@@ -132,7 +147,7 @@ const Login = () => {
           </p>
         ) : (
           <p className="text-gray-400 text-center text-xs mt-4">
-            Don’t have an account?{" "}
+            Don't have an account?{" "}
             <span
               onClick={() => setState("Sign Up")}
               className="text-blue-400 cursor-pointer underline"

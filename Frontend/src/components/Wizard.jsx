@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from "react";
 import YearPanel from "./YearPanel";
 import TeacherForm from "./TeacherForm";
-import SummaryPanel from "./SummaryPanel";
+import RoomAllocation from "./RoomAllocation";
 import SchedulerResult from "./SchedulerResult";
 import axios from "axios";
 
 export default function Wizard({ selectedYears }) {
   const [step, setStep] = useState(1);
   const [result, setResult] = useState(null);
+  const [rooms, setRooms] = useState([]);
 
   const initialYearData = useMemo(() => {
     const obj = {};
@@ -26,13 +27,14 @@ export default function Wizard({ selectedYears }) {
   const [yearData, setYearData] = useState(initialYearData);
   const [teachers, setTeachers] = useState([]);
 
-  const payload = {
-    years: yearData,
-    teachers: teachers,
-  };
-
   const handleGenerate = async () => {
     try {
+      const payload = {
+        years: yearData,
+        teachers: teachers,
+        rooms: rooms, // Include rooms in payload
+      };
+
       console.log("Sending payload:", payload);
 
       const res = await axios.post(
@@ -42,8 +44,6 @@ export default function Wizard({ selectedYears }) {
 
       console.log("Scheduler response:", res.data);
 
-      // Expecting solver to return object with class_timetable and teacher_timetable
-      // Some backends wrap under .timetable — handle both cases
       const timetable = res.data.timetable || res.data;
       if (!timetable) {
         alert("Invalid scheduler response");
@@ -59,9 +59,7 @@ export default function Wizard({ selectedYears }) {
     }
   };
 
-  // Save handler passed down to SchedulerResult
   const handleSave = async (outerKey, table, isTeacher = false) => {
-    // parent-level save so user has single place to manage backend calls
     let payload = {};
     if (isTeacher) {
       payload = {
@@ -90,7 +88,6 @@ export default function Wizard({ selectedYears }) {
       );
 
       if (res?.data?.success) {
-        // success feedback
         alert("Saved: " + (res.data.message || "OK"));
         return res.data;
       } else {
@@ -107,7 +104,7 @@ export default function Wizard({ selectedYears }) {
   const stepTitles = [
     { number: 1, title: "Year Configuration", icon: "📚", color: "blue" },
     { number: 2, title: "Teacher Assignment", icon: "👨‍🏫", color: "purple" },
-    { number: 3, title: "Review & Generate", icon: "✓", color: "green" },
+    { number: 3, title: "Allocate Rooms", icon: "🏢", color: "green" },
     { number: 4, title: "Timetable Result", icon: "📅", color: "cyan" },
   ];
 
@@ -191,8 +188,10 @@ export default function Wizard({ selectedYears }) {
 
         {step === 3 && (
           <div className="animate-fadeIn">
-            <SummaryPanel
-              data={payload}
+            <RoomAllocation
+              yearData={yearData}
+              rooms={rooms}
+              setRooms={setRooms}
               onBack={() => setStep(2)}
               onGenerate={handleGenerate}
             />
@@ -203,6 +202,7 @@ export default function Wizard({ selectedYears }) {
           <div className="animate-fadeIn">
             <SchedulerResult
               result={result}
+              rooms={rooms}
               onBack={() => setStep(1)}
               onSave={handleSave}
             />
@@ -210,9 +210,9 @@ export default function Wizard({ selectedYears }) {
         )}
 
         {/* Navigation Buttons */}
-        {step < 4 && (
+        {step < 3 && (
           <div className="mt-8 flex justify-between items-center pt-6 border-t border-gray-200">
-            {step > 1 && step < 3 ? (
+            {step > 1 ? (
               <button
                 onClick={() => setStep(step - 1)}
                 className="px-6 py-3 bg-white/80 backdrop-blur-sm text-gray-700 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200 border border-gray-200/50 flex items-center gap-2"
@@ -224,20 +224,17 @@ export default function Wizard({ selectedYears }) {
               <div />
             )}
 
-            {step < 3 && (
-              <button
-                onClick={() => setStep(step + 1)}
-                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 ml-auto"
-              >
-                Next Step
-                <span className="text-lg">→</span>
-              </button>
-            )}
+            <button
+              onClick={() => setStep(step + 1)}
+              className="px-8 py-3 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 ml-auto"
+            >
+              Next Step
+              <span className="text-lg">→</span>
+            </button>
           </div>
         )}
       </div>
 
-      {/* Animation Styles (plain style tag to avoid "jsx" warning) */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
