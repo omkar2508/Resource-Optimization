@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-dashboard.png";
+
 export const Hero = () => {
   return (
     <section className="relative min-h-screen bg-gradient-hero flex items-center overflow-hidden pt-16">
@@ -35,6 +36,7 @@ export const Hero = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              {/* FIXED: Navigate to /login instead of signup */}
               <Link to="/login">
                 <Button
                   size="lg"
@@ -80,7 +82,6 @@ export const Hero = () => {
                 className="w-full h-auto transform hover:scale-105 transition-transform duration-500"
               />
             </div>
-            {/* Floating accent */}
             <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-accent/20 rounded-full blur-2xl" />
           </div>
         </div>

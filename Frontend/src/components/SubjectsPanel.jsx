@@ -61,7 +61,6 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center gap-2 mb-6">
         <span className="text-2xl">📚</span>
         <h4 className="text-xl font-bold text-gray-800">Subjects</h4>
@@ -70,7 +69,6 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
         </span>
       </div>
 
-      {/* Add Subject Form */}
       <div className="bg-gradient-to-br from-blue-50/50 to-cyan-50/50 backdrop-blur-sm p-6 rounded-xl border border-blue-200/50 mb-6">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-lg">➕</span>
@@ -108,7 +106,7 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
             min="1"
             max="20"
             className="px-4 py-3 border-2 border-blue-200 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all font-semibold text-gray-700"
-            placeholder="Hours per week"
+            placeholder="No. of Hours"
             value={subject.hours}
             onChange={(e) =>
               setSubject({ ...subject, hours: Number(e.target.value) })
@@ -121,7 +119,7 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
               min="1"
               max="10"
               className="px-4 py-3 border-2 border-purple-200 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all font-semibold text-gray-700"
-              placeholder="Number of Batches"
+              placeholder="No. of batches"
               value={subject.batches}
               onChange={(e) =>
                 setSubject({ ...subject, batches: Number(e.target.value) })
@@ -139,7 +137,6 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
         </button>
       </div>
 
-      {/* Subjects List */}
       {yearData[year].subjects.length > 0 ? (
         <div className="space-y-3">
           <h5 className="font-semibold text-gray-700 flex items-center gap-2">
@@ -153,7 +150,6 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4 flex-1">
-                  {/* Type Badge */}
                   <div
                     className={`px-3 py-1 bg-gradient-to-r ${getTypeColor(
                       s.type
@@ -163,7 +159,6 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
                     {s.type}
                   </div>
 
-                  {/* Subject Info */}
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-gray-800 text-lg">
@@ -189,7 +184,6 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
                   </div>
                 </div>
 
-                {/* Delete Button */}
                 <button
                   onClick={() => removeSubject(i)}
                   className="opacity-0 group-hover:opacity-100 px-3 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-all duration-200 flex items-center gap-1 text-sm"

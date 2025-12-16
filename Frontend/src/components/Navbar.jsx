@@ -27,7 +27,7 @@ export const Navbar = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
+          {/* Logo - Same "R" for all pages */}
           <Link to="/" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-lg">
@@ -59,6 +59,16 @@ export const Navbar = () => {
             >
               About
             </a>
+            
+            {/* View Timetable - Only for logged in users */}
+            {isLoggedIn && (
+              <Link
+                to="/admin/saved"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                View Timetable
+              </Link>
+            )}
           </div>
 
           {/* Right side */}
@@ -70,16 +80,8 @@ export const Navbar = () => {
                   {userData.name?.[0]?.toUpperCase()}
                 </div>
 
-                {/* FIXED DROPDOWN */}
-                <div
-                  className="
-                    absolute right-0 top-10
-                    opacity-0 invisible
-                    group-hover:opacity-100 group-hover:visible
-                    transition-all duration-200
-                    bg-white shadow-lg rounded-md py-2 w-40 z-50
-                  "
-                >
+                {/* Dropdown */}
+                <div className="absolute right-0 top-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 bg-white shadow-lg rounded-md py-2 w-40 z-50">
                   {!userData.isAccountVerified && (
                     <button
                       onClick={sendVerificationOtp}
@@ -99,10 +101,10 @@ export const Navbar = () => {
               </div>
             ) : (
               <>
-                <Link to="/login">
+                <Link to="/login" state={{ mode: "login" }}>
                   <Button variant="ghost">Login</Button>
                 </Link>
-                <Link to="/login">
+                <Link to="/login" state={{ mode: "signup" }}>
                   <Button className="bg-gradient-to-r from-primary to-primary-glow">
                     Get Started
                   </Button>
@@ -134,6 +136,17 @@ export const Navbar = () => {
                 About
               </Link>
 
+              {/* View Timetable - Mobile */}
+              {isLoggedIn && (
+                <Link 
+                  to="/admin/saved" 
+                  onClick={() => setIsMenuOpen(false)}
+                  className="font-medium text-primary"
+                >
+                  View Timetable
+                </Link>
+              )}
+
               {/* Mobile auth */}
               <div className="flex flex-col space-y-2 border-t border-border pt-4">
                 {isLoggedIn && userData ? (
@@ -164,12 +177,12 @@ export const Navbar = () => {
                   </>
                 ) : (
                   <>
-                    <Link to="/login" onClick={() => setIsMenuOpen(false)}>
+                    <Link to="/login" state={{ mode: "login" }} onClick={() => setIsMenuOpen(false)}>
                       <Button variant="ghost" className="w-full">
                         Login
                       </Button>
                     </Link>
-                    <Link to="/signup" onClick={() => setIsMenuOpen(false)}>
+                    <Link to="/login" state={{ mode: "signup" }} onClick={() => setIsMenuOpen(false)}>
                       <Button className="w-full bg-gradient-to-r from-primary to-primary-glow">
                         Get Started
                       </Button>
