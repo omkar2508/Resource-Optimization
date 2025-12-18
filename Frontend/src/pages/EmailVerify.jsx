@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom"; // ✅ FIXED
 import { useAppContext } from "../context/AppContext";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { Navbar } from "../components/Navbar";
 
 const EmailVerify = () => {
   axios.defaults.withCredentials = true;
@@ -84,21 +85,22 @@ const EmailVerify = () => {
       </div>
 
       {/* LEFT TOP — ResourceOPT */}
-      <div className="absolute left-5 sm:left-10 top-5 flex items-center space-x-2 cursor-pointer">
+      {/* <div className="absolute left-5 sm:left-10 top-5 flex items-center space-x-2 cursor-pointer">
         <Link to="/" className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-lg">R</span>
           </div>
           <span className="font-bold text-xl text-gray-800">ResourceOPT</span>
         </Link>
-      </div>
+      </div> */}
 
       {/* RIGHT TOP — Auth Logo */}
-      <img
+      {/* <img
         src={assets.logo}
         alt="auth logo"
         className="absolute right-4 sm:right-10 top-5 w-24 sm:w-28"
-      />
+      /> */}
+      <Navbar></Navbar>
 
       {/* OTP FORM */}
       <form

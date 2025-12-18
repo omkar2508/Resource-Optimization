@@ -3,6 +3,7 @@ import { assets } from "../assets/assets";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
+import { Navbar } from "../components/Navbar";
 
 const Login = () => {
   const location = useLocation();
@@ -54,21 +55,26 @@ const Login = () => {
       </div>
 
       {/* TOP LEFT LOGO */}
-      <div className="absolute left-5 sm:left-10 top-5 flex items-center space-x-2 cursor-pointer z-10">
+      {/* <div className="absolute left-5 sm:left-10 top-5 flex items-center space-x-2 cursor-pointer z-10">
         <Link to="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">R</span>
-          </div>
-          <span className="font-bold text-xl text-gray-800">ResourceOPT</span>
-        </Link>
-      </div>
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-lg">
+                R
+              </span>
+            </div>
+            <span className="font-bold text-xl text-foreground">
+              ResourceOPT
+            </span>
+          </Link> }
+      </div> */}
+      <Navbar/>
 
       {/* TOP RIGHT AUTH LOGO */}
-      <img
+      {/* <img
         src={assets.logo}
         alt="auth logo"
         className="absolute right-4 sm:right-10 top-5 w-20 sm:w-24 z-10"
-      />
+      /> */}
 
       {/* CENTER CARD */}
       <div className="relative z-20 bg-slate-900 px-10 py-12 rounded-xl shadow-xl w-full max-w-md text-indigo-300">

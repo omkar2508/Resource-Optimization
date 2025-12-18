@@ -172,9 +172,7 @@ def solver_greedy_distribute(payload):
     teacher_tt = {t["name"]: {d: {p: [] for p in range(1, max_p + 1)} for d in DAY_NAMES} for t in teachers}
     room_tt = {r["name"]: {d: {p: [] for p in range(1, max_p + 1)} for d in DAY_NAMES} for r in rooms}
     
-    # Tracker for daily theory lectures per division
     daily_theory_count = {} 
-
     for yname, ydata in years.items():
         divs = int(ydata.get("divisions", 1))
         class_tt[yname] = {d: {day: {p: [] for p in range(1, max_p + 1)} for day in DAY_NAMES} for d in range(1, divs + 1)}
@@ -186,9 +184,19 @@ def solver_greedy_distribute(payload):
         for req in req_pool: req["periods_today"] = 0
 
         for p in range(1, max_p + 1):
-            random.shuffle(req_pool)
+            # Sort requirements based on the time of day:
+            # Morning (P1-P3): Theory First
+            # Afternoon (P4+): Lab/Tutorial First
+            if p <= 3:
+                # Priority: Theory (1) > Tutorial (2) > Lab (3)
+                sorted_reqs = sorted(req_pool, key=lambda x: (0 if x["type"] == "Theory" else 1))
+            else:
+                # Priority: Lab/Tutorial (0) > Theory (1)
+                sorted_reqs = sorted(req_pool, key=lambda x: (1 if x["type"] == "Theory" else 0))
+            
+            random.shuffle(sorted_reqs) # Add some variety within priority groups
 
-            for req in req_pool:
+            for req in sorted_reqs:
                 if req["remaining"] <= 0: continue
                 
                 yname, div = req["year"], req["div"]
@@ -198,46 +206,43 @@ def solver_greedy_distribute(payload):
                 if day in ydata.get("holidays", []): continue
                 if p > int(ydata.get("periodsPerDay", 6)) or p == int(ydata.get("lunchBreak", 4)): continue
                 
-                # --- CONSTRAINT: MAX 3 THEORY LECTURES PER DAY ---
-                if req["type"] == "Theory" and daily_theory_count[class_key][day] >= 3:
-                    continue # Skip theory if cap reached, allowing labs/tutorials to fill rest of day
+                # Constraint: Max 3 theory lectures per day (Ensures distribution)
+                if req["type"] == "Theory" and daily_theory_count[class_key][day] >= 3: continue
                 
-                # --- CONSTRAINT: MAX 1HR PER SPECIFIC SUBJECT PER DAY ---
+                # Constraint: Max 1hr per specific subject per day
                 if req["periods_today"] >= int(ydata.get("maxDailyPerSubject", 1)): continue
 
                 code, stype, batch = req["code"], req["type"], req["batch"]
                 current_occupants = class_tt[yname][div][day][p]
                 
-                # Exclusion Logic
+                # --- EXCLUSION LOGIC ---
+                # 1. If a Theory lecture is already there, slot is full.
                 if any(occ["type"] == "Theory" for occ in current_occupants): continue
+                # 2. If we are placing Theory, the slot must be empty (no parallel labs during a lecture).
                 if stype == "Theory" and len(current_occupants) > 0: continue
+                # 3. If we are placing a Batch, that specific batch must be free.
                 if batch and any(occ["batch"] == batch for occ in current_occupants): continue
                 
-                # Teacher Check
+                # --- TEACHER AVAILABILITY ---
                 eligible_teachers = [t for t in teachers if any(s["code"] == code for s in t.get("subjects", []))]
                 available_teacher = next((t["name"] for t in eligible_teachers if not teacher_tt[t["name"]][day][p]), None)
                 if not available_teacher: continue
 
-                # --- ADVANCED ROOM ALLOCATION ---
+                # --- ROOM ALLOCATION (With Fallback) ---
                 available_room = None
-                
                 if stype == "Lab":
-                    # Labs STRICTLY need Lab rooms
                     available_room = next((r["name"] for r in rooms if r["type"] == "Lab" and not room_tt[r["name"]][day][p]), None)
-                
                 elif stype == "Tutorial":
-                    # Priority 1: Tutorial Room
+                    # Priority: Tutorial Room -> Classroom
                     available_room = next((r["name"] for r in rooms if r["type"] == "Tutorial" and not room_tt[r["name"]][day][p]), None)
-                    # Priority 2: Classroom (Fallback)
                     if not available_room:
                         available_room = next((r["name"] for r in rooms if r["type"] == "Classroom" and not room_tt[r["name"]][day][p]), None)
-                
                 else: # Theory
                     available_room = next((r["name"] for r in rooms if r["type"] == "Classroom" and not room_tt[r["name"]][day][p]), None)
 
                 if not available_room: continue
 
-                # ALLOCATE
+                # --- ALLOCATE ---
                 entry = {"subject": code, "teacher": available_teacher, "room": available_room, "batch": batch, "type": stype}
                 class_tt[yname][div][day][p].append(entry)
                 teacher_tt[available_teacher][day][p].append({"subject": code, "year": yname, "division": div, "room": available_room, "batch": batch})
