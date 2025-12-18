@@ -1,5 +1,6 @@
 import React from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const ORDERED_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -55,33 +56,63 @@ function downloadJSON(obj, fileName) {
 }
 
 function downloadCSV(table, fileName) {
-  // FIXED: Proper CSV format with headers including room info
-  let csv = "Day,Period,Subject,Teacher,Year,Division,Type,Batch,Room\n";
-
+  // Export as a timetable grid: header row = days, rows = periods
+  let csv = "Period / Day";
   ORDERED_DAYS.forEach((day) => {
-    if (!table[day]) return;
-    
-    Object.keys(table[day])
-      .sort((a, b) => Number(a) - Number(b))
-      .forEach((period) => {
-        const cell = table[day][period] || [];
-        
-        if (cell.length === 0) {
-          csv += `${day},P${period},-,-,-,-,-,-,-\n`;
-        } else {
-          cell.forEach((entry) => {
+    if (table[day]) {
+      csv += `,${day}`;
+    }
+  });
+  csv += "\n";
+
+  const firstDay = ORDERED_DAYS.find((d) => table[d]);
+  if (!firstDay) {
+    const blobEmpty = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const linkEmpty = document.createElement("a");
+    linkEmpty.href = URL.createObjectURL(blobEmpty);
+    linkEmpty.download = fileName + ".csv";
+    linkEmpty.click();
+    return;
+  }
+
+  const periods = Object.keys(table[firstDay])
+    .map((p) => Number(p))
+    .filter((n) => !Number.isNaN(n))
+    .sort((a, b) => a - b);
+
+  periods.forEach((period) => {
+    csv += `P${period}`;
+
+    ORDERED_DAYS.forEach((day) => {
+      if (!table[day]) return;
+      const cell = table[day]?.[period] || [];
+
+      if (cell.length === 0) {
+        csv += ",-";
+      } else {
+        const combined = cell
+          .map((entry) => {
             const subj = entry.subject || "-";
             const teach = entry.teacher || "-";
-            const yr = entry.year || "-";
-            const div = entry.division || "-";
-            const type = entry.type || "Theory";
-            const batch = entry.batch || "-";
-            const room = entry.room || "-";
-            
-            csv += `${day},P${period},"${subj}","${teach}","${yr}","${div}","${type}","${batch}","${room}"\n`;
-          });
-        }
-      });
+            const yr = entry.year || "";
+            const div = entry.division || "";
+            const room = entry.room || "";
+
+            const extra = [yr && `Y:${yr}`, div && `Div:${div}`, room && `R:${room}`]
+              .filter(Boolean)
+              .join(" ");
+
+            return extra
+              ? `${subj} (${teach} ${extra})`
+              : `${subj} (${teach})`;
+          })
+          .join(" | ");
+
+        csv += `,"${combined}"`;
+      }
+    });
+
+    csv += "\n";
   });
 
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -96,6 +127,7 @@ export default function SchedulerResult({ result, onBack, onSave }) {
 
   const classTT = result.class_timetable || {};
   const teacherTT = result.teacher_timetable || {};
+  const navigate = useNavigate();
 
   const defaultSave = async (outerKey, table, isTeacher = false) => {
     let payload = {};
@@ -151,19 +183,13 @@ export default function SchedulerResult({ result, onBack, onSave }) {
   };
 
   const handleEdit = (outerKey, table, isTeacher = false) => {
-    const current = JSON.stringify(table, null, 2);
-    const edited = window.prompt(
-      `Edit timetable JSON for "${outerKey}".\n(If empty or cancel – no changes)`,
-      current
-    );
-    if (!edited) return;
-    try {
-      const parsed = JSON.parse(edited);
-      handleSave(outerKey, parsed, isTeacher);
-    } catch (err) {
-      alert("Invalid JSON. Edit aborted. See console for error.");
-      console.error("JSON parse error in edit:", err);
-    }
+    navigate("/admin/edit-timetable", {
+      state: {
+        table,
+        outerKey,
+        isTeacher,
+      },
+    });
   };
 
   return (

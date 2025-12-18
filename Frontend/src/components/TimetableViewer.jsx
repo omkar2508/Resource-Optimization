@@ -14,25 +14,47 @@ export default function TimetableViewer({
   if (!data) return null;
 
   const downloadCSV = (table, name) => {
-    let csv = "Day,Period,Subject,Teacher,Year,Division\n";
+    // Export in a grid format similar to the on-screen timetable
+    let csv = "Period / Day";
+    DAYS.forEach((d) => {
+      csv += `,${d}`;
+    });
+    csv += "\n";
 
-    Object.keys(table).forEach((day) => {
-      Object.keys(table[day]).forEach((period) => {
-        const cell = table[day][period] || [];
+    PERIODS.forEach((p) => {
+      csv += `P${p}`;
+      DAYS.forEach((d) => {
+        const cell = table[d]?.[p] || [];
 
         if (cell.length === 0) {
-          csv += `${day},${period},-, -, -, -\n`;
+          csv += ",-";
         } else {
-          cell.forEach((entry) => {
-            csv += `${day},${period},${entry.subject || "-"},${
-              entry.teacher || "-"
-            },${entry.year || "-"},${entry.division || "-"}\n`;
-          });
+          const combined = cell
+            .map((entry) => {
+              const subj = entry.subject || "-";
+              const teach = entry.teacher || "-";
+              const yr = entry.year || "";
+              const div = entry.division || "";
+              const room = entry.room || "";
+
+              const extra =
+                [yr && `Y:${yr}`, div && `Div:${div}`, room && `R:${room}`]
+                  .filter(Boolean)
+                  .join(" ");
+
+              return extra
+                ? `${subj} (${teach} ${extra})`
+                : `${subj} (${teach})`;
+            })
+            .join(" | ");
+
+          csv += `,"${combined}"`;
         }
       });
+      csv += "\n";
     });
 
-    const blob = new Blob([csv], { type: "text/csv" });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = name + ".csv";

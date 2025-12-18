@@ -25,6 +25,7 @@ import AdminLayout from "./layouts/AdminLayouts";
 import SavedTimetable from "./pages/SavedTimetable";
 import "react-toastify/dist/ReactToastify.css";
 import TeacherTimetable from "./pages/TeacherTimetable";
+import EditTimetable from "./pages/EditTimetable";
 
 export default function App() {
   const { isAdmin, isLoggedIn } = useAppContext();
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="dashboard" element={<TimetableGenerator />} />
           <Route path="saved" element={<SavedTimetable />} />
           <Route path="teachers" element={<TeacherTimetable />} />
+          <Route path="edit-timetable" element={<EditTimetable />} />
         </Route>
 
         {/* 404 PAGE */}

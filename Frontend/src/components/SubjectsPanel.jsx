@@ -5,7 +5,7 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
     code: "",
     name: "",
     type: "Theory",
-    hours: 3,
+    hours: "",
     batches: 1,
   });
 
@@ -22,7 +22,7 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
       [year]: { ...prev[year], subjects: updated },
     }));
 
-    setSubject({ code: "", name: "", type: "Theory", hours: 3, batches: 1 });
+    setSubject({ code: "", name: "", type: "Theory", hours: "", batches: 1 });
   }
 
   function removeSubject(index) {
@@ -106,10 +106,14 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
             min="1"
             max="20"
             className="px-4 py-3 border-2 border-blue-200 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all font-semibold text-gray-700"
-            placeholder="No. of Hours"
+            placeholder="No of Hr/per week"
             value={subject.hours}
             onChange={(e) =>
-              setSubject({ ...subject, hours: Number(e.target.value) })
+              setSubject({
+                ...subject,
+                hours:
+                  e.target.value === "" ? "" : Number(e.target.value),
+              })
             }
           />
 
