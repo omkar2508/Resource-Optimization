@@ -149,22 +149,43 @@ def solver_greedy_distribute(payload):
     teachers = payload.get("teachers", [])
     rooms = payload.get("rooms", [])
     
-    # 1. ORCHESTRATE REQUIREMENTS
-    req_pool = []
+    # 1. ORCHESTRATE REQUIREMENTS & CALCULATE DAILY QUOTAS
+    theory_pool = []
+    practical_pool = []
+    daily_quotas = {} # Format: { "Year_Div": { "Theory": N, "Practical": M } }
+
     for yname, ydata in years.items():
         divs = int(ydata.get("divisions", 1))
+        working_days_count = int(ydata.get("daysPerWeek", 5))
+        
         for div in range(1, divs + 1):
+            class_key = f"{yname}_{div}"
+            total_theory_hours = 0
+            total_practical_hours = 0
+            
             for subj in ydata.get("subjects", []):
                 stype = subj.get("type", "Theory")
                 hours = int(subj.get("hours", 1))
                 batches = int(subj.get("batches", 1)) if stype != "Theory" else 1
                 
                 for b_idx in range(1, batches + 1):
-                    req_pool.append({
+                    req = {
                         "year": yname, "div": div, "code": subj["code"],
                         "type": stype, "batch": b_idx if stype != "Theory" else None,
-                        "remaining": hours, "periods_today": 0 
-                    })
+                        "remaining": hours, "scheduled_today": False 
+                    }
+                    if stype == "Theory":
+                        theory_pool.append(req)
+                        total_theory_hours += hours
+                    else:
+                        practical_pool.append(req)
+                        total_practical_hours += hours
+
+            # Balanced Daily Load Calculation
+            daily_quotas[class_key] = {
+                "Theory": math.ceil(total_theory_hours / working_days_count),
+                "Practical": math.ceil(total_practical_hours / working_days_count)
+            }
 
     # 2. INITIALIZE TRACKERS
     max_p = max([int(y.get("periodsPerDay", 6)) for y in years.values()])
@@ -172,93 +193,100 @@ def solver_greedy_distribute(payload):
     teacher_tt = {t["name"]: {d: {p: [] for p in range(1, max_p + 1)} for d in DAY_NAMES} for t in teachers}
     room_tt = {r["name"]: {d: {p: [] for p in range(1, max_p + 1)} for d in DAY_NAMES} for r in rooms}
     
-    daily_theory_count = {} 
     for yname, ydata in years.items():
         divs = int(ydata.get("divisions", 1))
         class_tt[yname] = {d: {day: {p: [] for p in range(1, max_p + 1)} for day in DAY_NAMES} for d in range(1, divs + 1)}
-        for d in range(1, divs + 1):
-            daily_theory_count[f"{yname}_{d}"] = {day: 0 for day in DAY_NAMES}
 
     # 3. SCHEDULING ENGINE
     for day in DAY_NAMES:
-        for req in req_pool: req["periods_today"] = 0
+        # Reset daily tracking
+        for r in theory_pool + practical_pool: 
+            r["scheduled_today"] = False
+        
+        # Track what we've actually scheduled today per class
+        daily_progress = {k: {"Theory": 0, "Practical": 0} for k in daily_quotas.keys()}
 
         for p in range(1, max_p + 1):
-            # Sort requirements based on the time of day:
-            # Morning (P1-P3): Theory First
-            # Afternoon (P4+): Lab/Tutorial First
-            if p <= 3:
-                # Priority: Theory (1) > Tutorial (2) > Lab (3)
-                sorted_reqs = sorted(req_pool, key=lambda x: (0 if x["type"] == "Theory" else 1))
-            else:
-                # Priority: Lab/Tutorial (0) > Theory (1)
-                sorted_reqs = sorted(req_pool, key=lambda x: (1 if x["type"] == "Theory" else 0))
-            
-            random.shuffle(sorted_reqs) # Add some variety within priority groups
+            random.shuffle(theory_pool)
+            random.shuffle(practical_pool)
 
-            for req in sorted_reqs:
-                if req["remaining"] <= 0: continue
-                
-                yname, div = req["year"], req["div"]
-                ydata = years[yname]
-                class_key = f"{yname}_{div}"
-                
+            for yname, ydata in years.items():
                 if day in ydata.get("holidays", []): continue
-                if p > int(ydata.get("periodsPerDay", 6)) or p == int(ydata.get("lunchBreak", 4)): continue
-                
-                # Constraint: Max 3 theory lectures per day (Ensures distribution)
-                if req["type"] == "Theory" and daily_theory_count[class_key][day] >= 3: continue
-                
-                # Constraint: Max 1hr per specific subject per day
-                if req["periods_today"] >= int(ydata.get("maxDailyPerSubject", 1)): continue
+                if p > int(ydata.get("periodsPerDay", 6)): continue
+                if p == int(ydata.get("lunchBreak", 4)): continue
 
-                code, stype, batch = req["code"], req["type"], req["batch"]
-                current_occupants = class_tt[yname][div][day][p]
-                
-                # --- EXCLUSION LOGIC ---
-                # 1. If a Theory lecture is already there, slot is full.
-                if any(occ["type"] == "Theory" for occ in current_occupants): continue
-                # 2. If we are placing Theory, the slot must be empty (no parallel labs during a lecture).
-                if stype == "Theory" and len(current_occupants) > 0: continue
-                # 3. If we are placing a Batch, that specific batch must be free.
-                if batch and any(occ["batch"] == batch for occ in current_occupants): continue
-                
-                # --- TEACHER AVAILABILITY ---
-                eligible_teachers = [t for t in teachers if any(s["code"] == code for s in t.get("subjects", []))]
-                available_teacher = next((t["name"] for t in eligible_teachers if not teacher_tt[t["name"]][day][p]), None)
-                if not available_teacher: continue
+                divs = int(ydata.get("divisions", 1))
+                for div in range(1, divs + 1):
+                    class_key = f"{yname}_{div}"
+                    quota = daily_quotas[class_key]
+                    progress = daily_progress[class_key]
 
-                # --- ROOM ALLOCATION (With Fallback) ---
-                available_room = None
-                if stype == "Lab":
-                    available_room = next((r["name"] for r in rooms if r["type"] == "Lab" and not room_tt[r["name"]][day][p]), None)
-                elif stype == "Tutorial":
-                    # Priority: Tutorial Room -> Classroom
-                    available_room = next((r["name"] for r in rooms if r["type"] == "Tutorial" and not room_tt[r["name"]][day][p]), None)
-                    if not available_room:
-                        available_room = next((r["name"] for r in rooms if r["type"] == "Classroom" and not room_tt[r["name"]][day][p]), None)
-                else: # Theory
-                    available_room = next((r["name"] for r in rooms if r["type"] == "Classroom" and not room_tt[r["name"]][day][p]), None)
-
-                if not available_room: continue
-
-                # --- ALLOCATE ---
-                entry = {"subject": code, "teacher": available_teacher, "room": available_room, "batch": batch, "type": stype}
-                class_tt[yname][div][day][p].append(entry)
-                teacher_tt[available_teacher][day][p].append({"subject": code, "year": yname, "division": div, "room": available_room, "batch": batch})
-                room_tt[available_room][day][p].append({"subject": code, "year": yname, "division": div})
-                
-                req["remaining"] -= 1
-                req["periods_today"] += 1
-                if stype == "Theory":
-                    daily_theory_count[class_key][day] += 1
+                    # --- ATTEMPT THEORY FIRST (Respecting Quota) ---
+                    # Generally lectures are in the morning, so we bias this for P1-P3
+                    scheduled_in_this_slot = False
+                    if progress["Theory"] < quota["Theory"]:
+                        for req in theory_pool:
+                            if (req["year"] == yname and req["div"] == div and 
+                                req["remaining"] > 0 and not req["scheduled_today"]):
+                                if allocate_slot(req, day, p, class_tt, teacher_tt, room_tt, teachers, rooms):
+                                    req["remaining"] -= 1
+                                    req["scheduled_today"] = True
+                                    progress["Theory"] += 1
+                                    scheduled_in_this_slot = True
+                                    break
+                    
+                    # --- ATTEMPT PRACTICAL (Parallel Batches) ---
+                    # If quota for theory is done OR if no theory could be scheduled
+                    if not scheduled_in_this_slot and progress["Practical"] < quota["Practical"]:
+                        for req in practical_pool:
+                            if (req["year"] == yname and req["div"] == div and 
+                                req["remaining"] > 0 and not req["scheduled_today"]):
+                                
+                                # Parallel Check: Batch must be free
+                                if any(occ["batch"] == req["batch"] for occ in class_tt[yname][div][day][p]):
+                                    continue
+                                    
+                                if allocate_slot(req, day, p, class_tt, teacher_tt, room_tt, teachers, rooms):
+                                    req["remaining"] -= 1
+                                    req["scheduled_today"] = True
+                                    # Increment only once per slot even if multiple batches run
+                                    if not any(entry["type"] != "Theory" for entry in class_tt[yname][div][day][p][:-1]):
+                                        progress["Practical"] += 1
 
     return {
-        "status": "success" if not any(r['remaining'] > 0 for r in req_pool) else "partial",
+        "status": "success" if not any(r['remaining'] > 0 for r in theory_pool + practical_pool) else "partial",
         "class_timetable": class_tt,
         "teacher_timetable": teacher_tt,
-        "warnings": [f"{r['year']} Div {r['div']} {r['code']} B{r['batch']} missing {r['remaining']} hrs" for r in req_pool if r["remaining"] > 0]
+        "warnings": [f"{r['year']} Div {r['div']} {r['code']} missing {r['remaining']} hrs" for r in theory_pool + practical_pool if r["remaining"] > 0]
     }
+
+def allocate_slot(req, day, p, class_tt, teacher_tt, room_tt, teachers, rooms):
+    yname, div, code, stype, batch = req["year"], req["div"], req["code"], req["type"], req["batch"]
+    current_occupants = class_tt[yname][div][day][p]
+    
+    if any(occ["type"] == "Theory" for occ in current_occupants): return False
+    if stype == "Theory" and len(current_occupants) > 0: return False
+    
+    eligible = [t for t in teachers if any(s["code"] == code for s in t.get("subjects", []))]
+    available_t = next((t["name"] for t in eligible if not teacher_tt[t["name"]][day][p]), None)
+    if not available_t: return False
+
+    available_r = None
+    if stype == "Lab":
+        available_r = next((r["name"] for r in rooms if r["type"] == "Lab" and not room_tt[r["name"]][day][p]), None)
+    elif stype == "Tutorial":
+        available_r = next((r["name"] for r in rooms if r["type"] == "Tutorial" and not room_tt[r["name"]][day][p]), None) or \
+                      next((r["name"] for r in rooms if r["type"] == "Classroom" and not room_tt[r["name"]][day][p]), None)
+    else:
+        available_r = next((r["name"] for r in rooms if r["type"] == "Classroom" and not room_tt[r["name"]][day][p]), None)
+
+    if not available_r: return False
+
+    entry = {"subject": code, "teacher": available_t, "room": available_r, "batch": batch, "type": stype}
+    class_tt[yname][div][day][p].append(entry)
+    teacher_tt[available_t][day][p].append({"subject": code, "year": yname, "division": div, "room": available_r, "batch": batch})
+    room_tt[available_r][day][p].append({"subject": code, "year": yname, "division": div})
+    return True
 
 def solve_timetable(payload):
     """
