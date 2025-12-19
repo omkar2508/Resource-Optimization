@@ -87,7 +87,7 @@ export const Navbar = () => {
             {/* View Timetable - Only for logged in users */}
             {isLoggedIn && (
               <Link
-                to="/admin/saved"
+                to="/viewTimetable"
                 className="text-muted-foreground hover:text-foreground"
               >
                 View Timetable

@@ -109,7 +109,7 @@ export const AppProvider = ({ children }) => {
 
       if (res.data.success) {
         toast.success("Account created! Please verify OTP.");
-        navigate("/");
+        navigate("/email-verify");
       } else {
         toast.error(res.data.message);
       }
