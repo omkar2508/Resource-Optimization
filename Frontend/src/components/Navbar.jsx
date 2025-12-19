@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppContext } from "../context/AppContext";
@@ -8,6 +8,14 @@ import { toast } from "react-toastify";
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isAuthPage = location.pathname === "/login";
+  const isHomePage = location.pathname === "/";
+  const isResetPage = location.pathname === "/reset-password";
+  const isEmailVerifyPage = location.pathname === "/email-verify";
+  const isAdminLogin = location.pathname === "/admin/login";
+  const isAdminLogin1 = location.pathname === "/admin/dashboard";
 
   const { isLoggedIn, userData, logout, axios } = useAppContext();
 
@@ -24,7 +32,21 @@ export const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300
+    ${
+      isAuthPage ||
+      isResetPage ||
+      isAdminLogin ||
+      isEmailVerifyPage ||
+      isAdminLogin1
+        ? "bg-transparent border-b border-border"
+        : isHomePage
+        ? "bg-background/80 backdrop-blur-md border-b border-border"
+        : "bg-background border-b border-border"
+    }
+  `}
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo - Same "R" for all pages */}
@@ -41,25 +63,27 @@ export const Navbar = () => {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            <a
-              href="#features"
+            <Link
+              to="/#features"
               className="text-muted-foreground hover:text-foreground"
             >
               Features
-            </a>
-            <a
-              href="#workflow"
+            </Link>
+
+            <Link
+              to="/#workflow"
               className="text-muted-foreground hover:text-foreground"
             >
               Workflow
-            </a>
-            <a
-              href="#about"
+            </Link>
+
+            <Link
+              to="/#about"
               className="text-muted-foreground hover:text-foreground"
             >
               About
-            </a>
-            
+            </Link>
+
             {/* View Timetable - Only for logged in users */}
             {isLoggedIn && (
               <Link
@@ -138,8 +162,8 @@ export const Navbar = () => {
 
               {/* View Timetable - Mobile */}
               {isLoggedIn && (
-                <Link 
-                  to="/admin/saved" 
+                <Link
+                  to="/admin/saved"
                   onClick={() => setIsMenuOpen(false)}
                   className="font-medium text-primary"
                 >
@@ -177,12 +201,20 @@ export const Navbar = () => {
                   </>
                 ) : (
                   <>
-                    <Link to="/login" state={{ mode: "login" }} onClick={() => setIsMenuOpen(false)}>
+                    <Link
+                      to="/login"
+                      state={{ mode: "login" }}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
                       <Button variant="ghost" className="w-full">
                         Login
                       </Button>
                     </Link>
-                    <Link to="/login" state={{ mode: "signup" }} onClick={() => setIsMenuOpen(false)}>
+                    <Link
+                      to="/login"
+                      state={{ mode: "signup" }}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
                       <Button className="w-full bg-gradient-to-r from-primary to-primary-glow">
                         Get Started
                       </Button>
