@@ -45,7 +45,7 @@ const EmailVerify = () => {
     const otp = inputRefs.current.map((ref) => ref.value).join("");
 
     if (otp.length !== 6) {
-      return toast.error("Enter 6 digit OTP");
+      return toast.error("Please Enter 6 digit OTP");
     }
 
     try {
