@@ -5,7 +5,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 
-
 import EmailVerify from "./pages/EmailVerify";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -26,6 +25,8 @@ import SavedTimetable from "./pages/SavedTimetable";
 import "react-toastify/dist/ReactToastify.css";
 import TeacherTimetable from "./pages/TeacherTimetable";
 import EditTimetable from "./pages/EditTimetable";
+import { Navbar } from "./components/Navbar";
+import ScrollToHash from "./components/ScrolltoHash";
 
 export default function App() {
   const { isAdmin, isLoggedIn } = useAppContext();

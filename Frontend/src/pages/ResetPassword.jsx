@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
+import { Navbar } from "../components/Navbar";
 
 const ResetPassword = () => {
   const { backendURL } = useAppContext();
@@ -114,7 +115,7 @@ const ResetPassword = () => {
       </div>
 
       {/* TOP LEFT ResourceOPT */}
-      <div className="absolute left-5 sm:left-10 top-5 flex items-center space-x-2 cursor-pointer z-20">
+      {/*}  <div className="absolute left-5 sm:left-10 top-5 flex items-center space-x-2 cursor-pointer z-20">
         <div
           onClick={() => navigate("/")}
           className="flex items-center space-x-2"
@@ -126,12 +127,15 @@ const ResetPassword = () => {
         </div>
       </div>
 
-      {/* TOP RIGHT auth logo */}
-      <img
+      
+    <img
         src={assets.logo}
         className="absolute right-4 sm:right-10 top-5 w-20 sm:w-24 z-20 cursor-pointer"
         onClick={() => navigate("/")}
       />
+
+      */}
+      <Navbar />
 
       {/* CONTENT CARD */}
       <div className="relative z-30 bg-slate-900 px-10 py-10 rounded-xl shadow-xl w-full max-w-md text-indigo-300">
