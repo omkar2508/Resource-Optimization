@@ -1,4 +1,6 @@
 import express from "express";
+import { addTeacher } from "../controllers/adminController.js";
+import userModel from "../models/userModel.js";
 
 const router = express.Router();
 
@@ -7,12 +9,6 @@ const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD || "").trim();
 
 router.post("/login", (req, res) => {
   const { email, password } = req.body;
-
-  console.log("ENV EMAIL:", JSON.stringify(ADMIN_EMAIL), ADMIN_EMAIL.length);
-  console.log("ENV PASS:", JSON.stringify(ADMIN_PASSWORD), ADMIN_PASSWORD.length);
-
-  console.log("BODY EMAIL:", JSON.stringify(email), email.length);
-  console.log("BODY PASS:", JSON.stringify(password), password.length);
 
   if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
     return res.status(500).json({
@@ -30,7 +26,7 @@ router.post("/login", (req, res) => {
   return res.status(401).json({ success: false, message: "Invalid credentials" });
 });
 
-// ⭐ REQUIRED ROUTE — frontend calls this on refresh
+// ⭐ frontend uses this
 router.get("/me", (req, res) => {
   if (req.session?.isAdmin) {
     return res.json({ authenticated: true, user: req.session.user });
@@ -46,12 +42,35 @@ router.post("/logout", (req, res) => {
   });
 });
 
-// protected test
-router.get("/protected", (req, res) => {
-  if (req.session?.isAdmin) {
-    return res.json({ message: "Admin-only data" });
+// ==========================================
+// ✅ NEW ROUTE — GET ALL USERS
+// ==========================================
+router.get("/users", async (req, res) => {
+  if (!req.session?.isAdmin) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
   }
-  return res.status(401).json({ message: "Unauthorized" });
+
+  try {
+    const users = await userModel.find(
+      {},
+      { name: 1, role: 1 }
+    );
+
+    return res.json({
+      success: true,
+      users,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch users",
+    });
+  }
 });
+
+router.post("/add-teacher", addTeacher);
 
 export default router;

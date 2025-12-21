@@ -27,6 +27,8 @@ import TeacherTimetable from "./pages/TeacherTimetable";
 import EditTimetable from "./pages/EditTimetable";
 import { Navbar } from "./components/Navbar";
 import ScrollToHash from "./components/ScrolltoHash";
+import AddTeacher from "./pages/AddTeacher";
+import IndividualTeacherTimetable from "./pages/IndividualTimetable";
 
 export default function App() {
   const { isAdmin, isLoggedIn } = useAppContext();
@@ -52,11 +54,19 @@ export default function App() {
           path="/admin"
           element={isAdmin ? <AdminLayout /> : <AdminLogin />}
         >
+          <Route path="/admin/add-teacher" element={<AddTeacher />} />
           <Route path="dashboard" element={<TimetableGenerator />} />
           <Route path="saved" element={<SavedTimetable />} />
           <Route path="teachers" element={<TeacherTimetable />} />
           <Route path="edit-timetable" element={<EditTimetable />} />
         </Route>
+
+        <Route
+          path="/teacher-timetable"
+          element={<IndividualTeacherTimetable />}
+        />
+
+        <Route path="/student-timetable" element={<SavedTimetable />} />
 
         {/* 404 PAGE */}
         <Route path="*" element={<NotFound />} />

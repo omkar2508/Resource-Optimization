@@ -28,6 +28,16 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+     role: {
+    type: String,
+    enum: ["teacher", "student"],
+    default: "student", // signup → student
+  },
+
+  department: {
+    type: String,
+    default: "", // only for teachers
+  },
 
     // Reset password OTP
     resetOtp: {

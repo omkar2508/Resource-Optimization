@@ -8,6 +8,7 @@ import header_img from './header_img.png'
 import saved_icon from './saved_icon.svg'
 import teacher_icon from './teacher_icon.svg'
 import dashboard_icon from './dashboard_icon.svg'
+import add_icon from './add_icon.svg'
 
 export const assets = {
     arrow_icon,
@@ -19,5 +20,6 @@ export const assets = {
     header_img,
     saved_icon,
     teacher_icon,
-    dashboard_icon
+    dashboard_icon,
+    add_icon,
 }

@@ -28,15 +28,20 @@ export default function AdminLayout() {
       path: "/admin/dashboard",
       icon: assets.dashboard_icon,
     },
-    { 
-      name: "View Timetable", 
-      path: "/admin/saved", 
-      icon: assets.saved_icon 
+    {
+      name: "View Timetable",
+      path: "/admin/saved",
+      icon: assets.saved_icon,
     },
     {
       name: "Teacher Timetables",
       path: "/admin/teachers",
       icon: assets.teacher_icon,
+    },
+    {
+      name: "Add Teacher",
+      path: "/admin/add-teacher",
+      icon: assets.add_icon,
     },
   ];
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useAppContext } from "../context/AppContext";
 
 function alphaIndex(n) {
   return String.fromCharCode(64 + n);
@@ -10,15 +11,41 @@ export default function TeacherForm({
   selectedYears: selectedYearsFromWizard,
   yearData,
 }) {
-  const [name, setName] = useState("");
+  const { axios } = useAppContext();
+  const [teacherUsers, setTeacherUsers] = useState([]); // 👈 teachers from users table
+  const [selectedTeacher, setSelectedTeacher] = useState(""); // 👈 dropdown value
+
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [selectedYearsLocal, setSelectedYearsLocal] = useState([]);
   const [divisionsByYear, setDivisionsByYear] = useState({});
   const [canTakeLabs, setCanTakeLabs] = useState(false);
-  const [canTakeTutorial, setCanTakeTutorial] = useState(false); // NEW
+  const [canTakeTutorial, setCanTakeTutorial] = useState(false);
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null);
 
+  // =====================================================
+  // Fetch teachers (role = teacher)
+  // =====================================================
+  useEffect(() => {
+    const loadTeachers = async () => {
+      try {
+        const res = await axios.get("/api/admin/users"); // ✅ EXISTING API
+
+        // ✅ FILTER ONLY TEACHERS (frontend only)
+        const teachersOnly = res.data.users.filter((u) => u.role === "teacher");
+
+        setTeacherUsers(teachersOnly);
+      } catch (err) {
+        console.error("Failed to load teachers", err);
+      }
+    };
+
+    loadTeachers();
+  }, []);
+
+  // =====================================================
+  // Available subjects
+  // =====================================================
   const availableSubjects = useMemo(() => {
     const list = [];
     Object.keys(yearData || {}).forEach((yr) => {
@@ -34,6 +61,9 @@ export default function TeacherForm({
     return list;
   }, [yearData]);
 
+  // =====================================================
+  // Divisions per year
+  // =====================================================
   useEffect(() => {
     const newDivs = {};
     selectedYearsLocal.forEach((yr) => {
@@ -43,6 +73,9 @@ export default function TeacherForm({
     setDivisionsByYear(newDivs);
   }, [selectedYearsLocal, yearData]);
 
+  // =====================================================
+  // Handlers
+  // =====================================================
   function toggleSubject(sub) {
     const key = `${sub.code}_${sub.year}`;
     const exists = selectedSubjects.some((s) => `${s.code}_${s.year}` === key);
@@ -75,10 +108,13 @@ export default function TeacherForm({
     setDivisionsByYear(copy);
   }
 
+  // =====================================================
+  // Save Teacher
+  // =====================================================
   function saveTeacher() {
     setError("");
 
-    if (!name.trim()) return setError("Teacher name required");
+    if (!selectedTeacher) return setError("Select a teacher");
     if (selectedSubjects.length === 0)
       return setError("Select at least one subject");
     if (selectedYearsLocal.length === 0) return setError("Select years");
@@ -89,37 +125,41 @@ export default function TeacherForm({
       }
     }
 
+    const teacherUser = teacherUsers.find((u) => u._id === selectedTeacher);
+
     const teacherObj = {
       id: editingId || Date.now(),
-      name: name.trim(),
+      teacherId: teacherUser._id,
+      name: teacherUser.name, // 👈 ONLY NAME
       subjects: selectedSubjects,
       years: selectedYearsLocal,
       divisions: divisionsByYear,
       canTakeLabs,
-      canTakeTutorial, // NEW
+      canTakeTutorial,
     };
 
     if (editingId) {
-      // UPDATE
       setTeachers(teachers.map((t) => (t.id === editingId ? teacherObj : t)));
       setEditingId(null);
     } else {
-      // ADD
       setTeachers([...teachers, teacherObj]);
     }
 
     // Reset
-    setName("");
-    setSelectedYearsLocal([]);
+    setSelectedTeacher("");
     setSelectedSubjects([]);
+    setSelectedYearsLocal([]);
     setDivisionsByYear({});
     setCanTakeLabs(false);
     setCanTakeTutorial(false);
   }
 
+  // =====================================================
+  // Edit / Delete
+  // =====================================================
   function editTeacher(t) {
     setEditingId(t.id);
-    setName(t.name);
+    setSelectedTeacher(t.teacherId);
     setSelectedSubjects(t.subjects);
     setSelectedYearsLocal(t.years);
     setDivisionsByYear(t.divisions);
@@ -131,17 +171,27 @@ export default function TeacherForm({
     setTeachers(teachers.filter((t) => t.id !== id));
   }
 
+  // =====================================================
+  // UI
+  // =====================================================
   return (
     <div>
       <h3 className="font-semibold mb-3">Add Teachers</h3>
 
       <div className="border p-4 rounded mb-4 bg-white">
-        <input
+        {/* Teacher Dropdown */}
+        <select
           className="border p-2 w-full mb-3"
-          placeholder="Teacher Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+          value={selectedTeacher}
+          onChange={(e) => setSelectedTeacher(e.target.value)}
+        >
+          <option value="">Select Teacher</option>
+          {teacherUsers.map((t) => (
+            <option key={t._id} value={t._id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
 
         {/* Subjects */}
         <div className="mb-3">
@@ -183,7 +233,7 @@ export default function TeacherForm({
 
         {/* Years */}
         <div className="mb-3">
-          <div className="font-medium mb-1">Years Teacher Will Teach</div>
+          <div className="font-medium mb-1">Years</div>
           <div className="flex gap-4 flex-wrap">
             {Object.keys(yearData).map((yr) => (
               <label key={yr} className="flex items-center gap-2">
@@ -199,38 +249,25 @@ export default function TeacherForm({
         </div>
 
         {/* Divisions */}
-        <div className="mb-3">
-          <div className="font-medium mb-1">Divisions</div>
-          {selectedYearsLocal.length === 0 && (
-            <div className="text-sm text-gray-500">Select years first</div>
-          )}
-          {selectedYearsLocal.map((yr) => {
-            const count = Number(yearData[yr]?.divisions || 1);
-            const divisions = Array.from({ length: count }, (_, i) =>
-              alphaIndex(i + 1)
-            );
+        {selectedYearsLocal.map((yr) => (
+          <div key={yr} className="mb-2 border p-2 rounded">
+            <div className="font-semibold">{yr}</div>
+            <div className="flex gap-4 flex-wrap">
+              {(divisionsByYear[yr] || []).map((d) => (
+                <label key={d} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={divisionsByYear[yr]?.includes(d)}
+                    onChange={() => toggleDivision(yr, d)}
+                  />
+                  {d}
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
 
-            return (
-              <div className="mb-2 border p-2 rounded" key={yr}>
-                <div className="font-semibold mb-1">{yr}</div>
-                <div className="flex gap-4 flex-wrap">
-                  {divisions.map((d) => (
-                    <label key={d} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={divisionsByYear[yr]?.includes(d)}
-                        onChange={() => toggleDivision(yr, d)}
-                      />
-                      {d}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Lab & Tutorial Checkboxes */}
+        {/* Lab / Tutorial */}
         <label className="flex items-center gap-2 mb-2">
           <input
             type="checkbox"
@@ -252,28 +289,11 @@ export default function TeacherForm({
         {error && <div className="text-red-600 mb-2">{error}</div>}
 
         <button
-          className="bg-blue-600 text-white px-4 py-2 rounded"
           onClick={saveTeacher}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
         >
           {editingId ? "Update Teacher" : "Add Teacher"}
         </button>
-
-        {editingId && (
-          <button
-            className="ml-2 bg-gray-500 text-white px-4 py-2 rounded"
-            onClick={() => {
-              setEditingId(null);
-              setName("");
-              setSelectedYearsLocal([]);
-              setSelectedSubjects([]);
-              setDivisionsByYear({});
-              setCanTakeLabs(false);
-              setCanTakeTutorial(false);
-            }}
-          >
-            Cancel
-          </button>
-        )}
       </div>
 
       {/* List */}
@@ -281,40 +301,9 @@ export default function TeacherForm({
 
       {teachers.map((t) => (
         <div key={t.id} className="border p-3 rounded mb-2 bg-white">
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
-              <div className="font-semibold text-lg">{t.name}</div>
-              <div className="text-sm text-gray-700">
-                Subjects: {t.subjects.map((s) => s.code).join(", ")}
-              </div>
-              <div className="text-sm text-gray-700">
-                Years: {t.years.join(", ")}
-              </div>
-              <div className="text-sm text-gray-700">
-                Divisions:
-                {Object.entries(t.divisions).map(
-                  ([year, divs]) => ` ${year}: [${divs.join(", ")}] `
-                )}
-              </div>
-              <div className="text-sm text-gray-700">
-                Labs: {t.canTakeLabs ? "Yes" : "No"} | Tutorial:{" "}
-                {t.canTakeTutorial ? "Yes" : "No"}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => editTeacher(t)}
-                className="px-3 py-1 bg-yellow-500 text-white rounded text-sm"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => deleteTeacher(t.id)}
-                className="px-3 py-1 bg-red-500 text-white rounded text-sm"
-              >
-                Delete
-              </button>
-            </div>
+          <div className="font-semibold">{t.name}</div>
+          <div className="text-sm">
+            Subjects: {t.subjects.map((s) => s.code).join(", ")}
           </div>
         </div>
       ))}
