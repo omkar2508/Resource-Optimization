@@ -107,7 +107,6 @@
 
 // export default AddTeacher;
 
-
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useAppContext } from "../context/AppContext";
@@ -127,26 +126,23 @@ const AddTeacher = () => {
   // FETCH TEACHERS
   // ===============================
   const fetchTeachers = async () => {
-  try {
-    const { data } = await axios.get("/api/teacher", {
-      withCredentials: true,
-    });
+    try {
+      const { data } = await axios.get("/api/teacher", {
+        withCredentials: true,
+      });
 
-    if (data.success) {
-      setTeachers(data.teachers);
-    } else {
+      if (data.success) {
+        setTeachers(data.teachers);
+      } else {
+        toast.error("Failed to fetch teachers");
+      }
+    } catch (error) {
       toast.error("Failed to fetch teachers");
     }
-  } catch (error) {
-    toast.error("Failed to fetch teachers");
-  }
-};
-;
-
+  };
   useEffect(() => {
-  fetchTeachers();
-}, []);
-
+    fetchTeachers();
+  }, []);
 
   // ===============================
   // ADD TEACHER
@@ -161,10 +157,11 @@ const AddTeacher = () => {
 
     try {
       setLoading(true);
-      const { data } = await axios.post("/api/teacher/add",
-          { name, email, department, password },
-          { withCredentials: true }
-        );
+      const { data } = await axios.post(
+        "/api/teacher/add",
+        { name, email, department, password },
+        { withCredentials: true }
+      );
 
       if (data.success) {
         toast.success("Teacher added successfully");
@@ -189,12 +186,9 @@ const AddTeacher = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 px-8 py-10">
-      
       {/* ================= ADD TEACHER RECTANGLE ================= */}
       <div className="bg-slate-900 rounded-2xl shadow-xl p-8 mb-10 max-w-6xl mx-auto">
-        <h2 className="text-2xl font-semibold text-white mb-6">
-          Add Teacher
-        </h2>
+        <h2 className="text-2xl font-semibold text-white mb-6">Add Teacher</h2>
 
         <form
           onSubmit={handleSubmit}
@@ -267,14 +261,11 @@ const AddTeacher = () => {
                 </tr>
               ) : (
                 teachers.map((t) => (
-                  <tr
-                    key={t._id}
-                    className="border-t hover:bg-slate-50"
-                  >
+                  <tr key={t._id} className="border-t hover:bg-slate-50">
                     <td className="p-3">{t.name}</td>
                     <td className="p-3">{t.email}</td>
                     <td className="p-3">{t.department}</td>
-                    <td className="p-3 capitalize">Teacher</td>      {/* {t.role} */}
+                    <td className="p-3 capitalize">Teacher</td> {/* {t.role} */}
                   </tr>
                 ))
               )}
@@ -282,7 +273,6 @@ const AddTeacher = () => {
           </table>
         </div>
       </div>
-
     </div>
   );
 };
