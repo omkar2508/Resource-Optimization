@@ -1,20 +1,20 @@
-let teachers = [];
+import userModel from "../models/userModel.js";
 
-export const addTeacher = (req, res) => {
-  const teacher = req.body;
-  if (!teacher.name) {
-    return res.status(400).json({ error: "Teacher name is required" });
+export const getTeachers = async (req, res) => {
+  try {
+    const teachers = await userModel.find(
+      { role: "teacher" },               // ONLY teachers
+      { name: 1, email: 1, department: 1, role: 1 } // fields
+    );
+
+    res.json({
+      success: true,
+      teachers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch teachers",
+    });
   }
-
-  teachers.push(teacher);
-  res.json({ message: "Teacher added successfully", teachers });
-};
-
-export const getTeachers = (req, res) => {
-  // res.json(teachers);
-  // change 24.12.2025
-  res.json({
-  success: true,
-  teachers,
-});
 };
