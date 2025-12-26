@@ -164,7 +164,7 @@ html {
 }
 
 
-/* Omkar gave this to add */
+
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
@@ -173,4 +173,11 @@ input:-webkit-autofill:active {
   caret-color: white;                
   transition: background-color 9999s ease-in-out 0s;
   box-shadow: 0 0 0 1000px transparent inset;
+}
+
+input.bg-slate-100:-webkit-autofill,
+input.bg-white:-webkit-autofill {
+  -webkit-text-fill-color: #1e293b;
+  caret-color: #1e293b;
+  box-shadow: 0 0 0 1000px #f1f5f9 inset;
 }

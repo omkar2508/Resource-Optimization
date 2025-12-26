@@ -44,14 +44,50 @@ const AddRoom = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this room?")) return;
+  const confirmDeleteRoom = (id) => {
+    toast(
+      ({ closeToast }) => (
+        <div>
+          <p className="font-medium mb-2">
+            Are you sure you want to delete this room?
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={closeToast}
+              className="px-3 py-1 text-sm border rounded"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                handleDeleteRoom(id);
+                closeToast();
+              }}
+              className="px-3 py-1 text-sm bg-red-600 text-white rounded"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        position: "top-center",
+        autoClose: false,
+        closeOnClick: false,
+        draggable: false,
+      }
+    );
+  };
+
+  const handleDeleteRoom = async (id) => {
     try {
-      await axios.delete(`/api/rooms/delete/${id}`);
+      await axios.delete(`/api/rooms/delete/${id}`, {
+        withCredentials: true,
+      });
       toast.success("Room deleted");
       fetchRooms();
     } catch (err) {
-      toast.error("Delete failed");
+      toast.error("Failed to delete room");
     }
   };
 
@@ -148,7 +184,7 @@ const AddRoom = () => {
                     <td className="p-3">{r.capacity}</td>
                     <td className="p-3">
                       <button
-                        onClick={() => handleDelete(r._id)}
+                        onClick={() => confirmDeleteRoom(r._id)}
                         className="text-red-600 hover:underline"
                       >
                         Delete
