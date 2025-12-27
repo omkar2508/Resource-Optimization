@@ -13,7 +13,11 @@ export const Hero = () => {
     role === "teacher" ? "/teacher-timetable" : "/student-timetable";
 
   return (
-    <section className="relative min-h-screen bg-gradient-hero flex items-center overflow-hidden pt-16">
+    <section
+      className={`relative min-h-screen bg-gradient-hero flex items-center overflow-hidden ${
+        isLoggedIn ? "pt-4" : "pt-16"
+      }`}
+    >
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse" />

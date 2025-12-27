@@ -90,7 +90,7 @@ export const Navbar = () => {
                   {userData.name?.[0]?.toUpperCase()}
                 </div>
 
-                <div className="absolute right-0 top-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible bg-white shadow-lg rounded-md py-2 w-40">
+                <div className="absolute right-0 top-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible bg-white shadow-lg rounded-md py-2 w-40 z-50 before:absolute before:-top-3 before:left-0 before:w-full before:h-3">
                   {!userData.isAccountVerified && (
                     <button
                       onClick={sendVerificationOtp}
