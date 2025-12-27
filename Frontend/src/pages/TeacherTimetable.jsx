@@ -214,16 +214,8 @@ function TeacherTable({ data, periods }) {
                     </div>
                   ))}
                   {(data[d]?.[p] || []).length === 0 && (
-<<<<<<< HEAD
                     <div className="py-8 text-center">
                       <span className="text-gray-300 font-medium tracking-widest text-[10px] uppercase">Free</span>
-=======
-                    // i want to reduce the height of black cells
-                    <div className="py-2 text-center">
-                      <span className="text-gray-300 font-medium tracking-widest text-[10px] uppercase">
-                        -
-                      </span>
->>>>>>> cf19876a770ae2c8120bdfb6e591e8b837ccee06
                     </div>
                   )}
                 </td>
