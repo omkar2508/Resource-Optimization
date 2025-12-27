@@ -2,19 +2,20 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-const PERIODS = [1, 2, 3, 4, 5, 6]; // Show all periods
 
 export default function TeacherTimetable() {
   const [teacherTTs, setTeacherTTs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [allPeriods, setAllPeriods] = useState([]); // Dynamic periods
 
   useEffect(() => {
     const fetchAndBuild = async () => {
       try {
         const res = await axios.get("http://localhost:5000/api/timetable/all");
         if (res.data.success) {
-          const teacherMap = buildTeacherTimetables(res.data.timetables || []);
+          const { teacherMap, periods } = buildTeacherTimetables(res.data.timetables || []);
           setTeacherTTs(teacherMap);
+          setAllPeriods(periods); // Set dynamic periods
         }
       } catch (err) {
         console.error("Fetch error:", err);
@@ -51,7 +52,7 @@ export default function TeacherTimetable() {
 
             <div className="flex gap-2">
               <button
-                onClick={() => downloadCSV(tt.timetable, tt.teacher)}
+                onClick={() => downloadCSV(tt.timetable, tt.teacher, allPeriods)}
                 className="px-3 py-1 bg-gray-700 text-white rounded text-sm"
               >
                 Download
@@ -59,7 +60,7 @@ export default function TeacherTimetable() {
             </div>
           </div>
 
-          <TeacherTable data={tt.timetable} />
+          <TeacherTable data={tt.timetable} periods={allPeriods} />
         </div>
       ))}
     </div>
@@ -68,6 +69,7 @@ export default function TeacherTimetable() {
 
 function buildTeacherTimetables(classTimetables) {
   const teacherMap = {};
+  const allPeriodsSet = new Set();
 
   classTimetables.forEach((doc) => {
     const year = doc.year;
@@ -77,6 +79,7 @@ function buildTeacherTimetables(classTimetables) {
     Object.keys(table || {}).forEach((day) => {
       const dayData = table[day] || {};
       Object.keys(dayData).forEach((period) => {
+        allPeriodsSet.add(Number(period)); // Collect all periods
         const cell = dayData[period] || [];
 
         cell.forEach((entry) => {
@@ -103,20 +106,25 @@ function buildTeacherTimetables(classTimetables) {
     });
   });
 
-  return Object.keys(teacherMap).map((teacher) => ({
-    teacher,
-    timetable: teacherMap[teacher],
-  }));
+  const sortedPeriods = Array.from(allPeriodsSet).sort((a, b) => a - b);
+
+  return {
+    teacherMap: Object.keys(teacherMap).map((teacher) => ({
+      teacher,
+      timetable: teacherMap[teacher],
+    })),
+    periods: sortedPeriods,
+  };
 }
 
-function downloadCSV(table, filename) {
+function downloadCSV(table, filename, periods) {
   let csv = "Period / Day";
   DAYS.forEach((d) => {
     csv += `,${d}`;
   });
   csv += "\n";
 
-  PERIODS.forEach((p) => {
+  periods.forEach((p) => {
     csv += `P${p}`;
     DAYS.forEach((d) => {
       const cell = table[d]?.[p] || [];
@@ -153,8 +161,7 @@ function downloadCSV(table, filename) {
   link.click();
 }
 
-// Updated TeacherTable to show ALL PERIODS
-function TeacherTable({ data }) {
+function TeacherTable({ data, periods }) {
   if (!data) return null;
 
   return (
@@ -170,7 +177,7 @@ function TeacherTable({ data }) {
         </thead>
 
         <tbody>
-          {PERIODS.map((p) => (
+          {periods.map((p) => (
             <tr key={p} className="hover:bg-blue-50/30 transition-colors">
               <td className="border p-4 font-black bg-blue-50 text-blue-700 text-center text-lg">P{p}</td>
 
@@ -199,9 +206,8 @@ function TeacherTable({ data }) {
                     </div>
                   ))}
                   {(data[d]?.[p] || []).length === 0 && (
-                    // i want to reduce the height of black cells
-                    <div className="py-2 text-center">
-                      <span className="text-gray-300 font-medium tracking-widest text-[10px] uppercase">-</span>
+                    <div className="py-8 text-center">
+                      <span className="text-gray-300 font-medium tracking-widest text-[10px] uppercase">Free</span>
                     </div>
                   )}
                 </td>
