@@ -5,7 +5,6 @@ import { useAppContext } from "../context/AppContext";
 import { Navbar } from "../components/Navbar";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8]; // Show all periods
 
 export default function StudentTimetable() {
   const { userData } = useAppContext();
@@ -40,16 +39,22 @@ export default function StudentTimetable() {
   }, [userData]);
 
   const downloadCSV = (table, filename) => {
-    let csv = "Period / Day";
+    const firstDay = DAYS.find(d => table[d] && Object.keys(table[d]).length > 0);
+    if (!firstDay) return;
+    
+    const timeSlots = Object.keys(table[firstDay]).sort();
+    
+    let csv = "Time Slot / Day";
     DAYS.forEach((d) => {
-      csv += `,${d}`;
+      if (table[d]) csv += `,${d}`;
     });
     csv += "\n";
 
-    PERIODS.forEach((p) => {
-      csv += `P${p}`;
+    timeSlots.forEach((slot) => {
+      csv += `${slot}`;
       DAYS.forEach((d) => {
-        const cell = table[d]?.[p] || [];
+        if (!table[d]) return;
+        const cell = table[d]?.[slot] || [];
 
         if (cell.length === 0) {
           csv += ",-";
@@ -58,21 +63,10 @@ export default function StudentTimetable() {
             .map((entry) => {
               const subj = entry.subject || "-";
               const teach = entry.teacher || "-";
-              const yr = entry.year || "";
-              const div = entry.division || "";
               const room = entry.room || "";
+              const batch = entry.batch ? `B${entry.batch}` : "";
 
-              const extra = [
-                yr && `Y:${yr}`,
-                div && `Div:${div}`,
-                room && `R:${room}`,
-              ]
-                .filter(Boolean)
-                .join(" ");
-
-              return extra
-                ? `${subj} (${teach} ${extra})`
-                : `${subj} (${teach})`;
+              return `${subj} (${teach} ${room} ${batch})`.trim();
             })
             .join(" | ");
 
@@ -88,8 +82,6 @@ export default function StudentTimetable() {
     link.download = filename + ".csv";
     link.click();
   };
-
-
 
   if (loading)
     return (
@@ -149,20 +141,21 @@ export default function StudentTimetable() {
 function TableViewer({ data, studentBatch }) {
   if (!data) return null;
 
-  const allPeriods = new Set();
+  // Get all unique time slots
+  const allTimeSlots = new Set();
   DAYS.forEach(day => {
     if (data[day]) {
-      Object.keys(data[day]).forEach(p => allPeriods.add(Number(p)));
+      Object.keys(data[day]).forEach(slot => allTimeSlots.add(slot));
     }
   });
-  const sortedPeriods = Array.from(allPeriods).sort((a, b) => a - b);
+  const sortedTimeSlots = Array.from(allTimeSlots).sort();
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-gray-100">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-blue-600 text-white font-bold">
-            <th className="border p-4 w-24 text-center">Period</th>
+            <th className="border p-4 w-32 text-center">Time Slot</th>
             {DAYS.map((d) => data[d] && (
               <th key={d} className="border p-4 min-w-[160px] text-center">{d}</th>
             ))}
@@ -170,13 +163,15 @@ function TableViewer({ data, studentBatch }) {
         </thead>
 
         <tbody>
-          {sortedPeriods.map((p) => (
-            <tr key={p} className="hover:bg-blue-50/30 transition-colors">
-              <td className="border p-4 font-black bg-blue-50 text-blue-700 text-center text-lg">P{p}</td>
+          {sortedTimeSlots.map((timeSlot) => (
+            <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
+              <td className="border p-4 font-black bg-blue-50 text-blue-700 text-center text-sm">
+                {timeSlot}
+              </td>
 
               {DAYS.map((d) => data[d] && (
                 <td key={d} className="border p-3 align-top min-h-[110px]">
-                  {(data[d][p] || [])
+                  {(data[d][timeSlot] || [])
                     .filter(entry => {
                         if (studentBatch && entry.batch && entry.type !== "Theory") {
                             return String(entry.batch) === String(studentBatch);
@@ -207,10 +202,20 @@ function TableViewer({ data, studentBatch }) {
                         <div className="flex items-center gap-1.5">
                           <span className="opacity-70">📍</span> {entry.room}
                         </div>
+                        {entry.time_slot && (
+                          <div className="flex items-center gap-1.5 text-blue-600 font-semibold">
+                            <span className="opacity-70">🕐</span> {timeSlot}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
-                  {(data[d][p] || []).length === 0 && (
+                  {(data[d][timeSlot] || []).filter(entry => {
+                    if (studentBatch && entry.batch && entry.type !== "Theory") {
+                      return String(entry.batch) === String(studentBatch);
+                    }
+                    return true;
+                  }).length === 0 && (
                     <div className="py-8 text-center">
                       <span className="text-gray-300 font-medium tracking-widest text-[10px] uppercase">No Class</span>
                     </div>

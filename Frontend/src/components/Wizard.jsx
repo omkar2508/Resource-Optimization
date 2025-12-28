@@ -1,24 +1,56 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import YearPanel from "./YearPanel";
 import TeacherForm from "./TeacherForm";
 import RoomAllocation from "./RoomAllocation";
 import SchedulerResult from "./SchedulerResult";
 import axios from "axios";
 
-export default function Wizard({ selectedYears }) {
+// Helper function to calculate periods per day from time configuration
+function calculatePeriodsPerDay(timeConfig) {
+  if (!timeConfig) return 6;
+  
+  const { startTime, endTime, periodDuration, lunchDuration } = timeConfig;
+  
+  try {
+    const start = new Date(`2000-01-01T${startTime || "09:00"}`);
+    const end = new Date(`2000-01-01T${endTime || "17:00"}`);
+    const totalMinutes = (end - start) / (1000 * 60);
+    
+    const lunchMin = lunchDuration || 45;
+    const effectiveMinutes = totalMinutes - lunchMin;
+    const duration = periodDuration || 60;
+    
+    return Math.floor(effectiveMinutes / duration);
+  } catch (e) {
+    console.error("Error calculating periods:", e);
+    return 6;
+  }
+}
+
+export default function Wizard({ selectedYears, importedData }) {
   const [step, setStep] = useState(1);
   const [result, setResult] = useState(null);
   const [rooms, setRooms] = useState([]);
 
+  // Initialize year data with time configuration
   const initialYearData = useMemo(() => {
     const obj = {};
     selectedYears.forEach((y) => {
       obj[y] = {
         divisions: 1,
-        periodsPerDay: 6,
+        periodsPerDay: 6, // Will be auto-calculated
         daysPerWeek: 5,
         lunchBreak: 4,
+        holidays: ["Sat", "Sun"],
         subjects: [],
+        // NEW: Time configuration with sensible defaults
+        timeConfig: {
+          startTime: "09:00",
+          endTime: "17:00",
+          periodDuration: 60, // 60 minutes per period
+          lunchStart: "13:00",
+          lunchDuration: 45 // 45 minute lunch break
+        }
       };
     });
     return obj;
@@ -27,12 +59,122 @@ export default function Wizard({ selectedYears }) {
   const [yearData, setYearData] = useState(initialYearData);
   const [teachers, setTeachers] = useState([]);
 
+  // Handle imported data
+  useEffect(() => {
+    if (importedData) {
+      console.log("Processing imported data:", importedData);
+      
+      // Process years
+      if (importedData.years) {
+        const importedYears = { ...importedData.years };
+        
+        Object.keys(importedYears).forEach((year) => {
+          // Add time config if missing
+          if (!importedYears[year].timeConfig) {
+            importedYears[year].timeConfig = {
+              startTime: "09:00",
+              endTime: "17:00",
+              periodDuration: 60,
+              lunchStart: "13:00",
+              lunchDuration: 45
+            };
+          }
+          
+          // Auto-calculate periodsPerDay from time config
+          importedYears[year].periodsPerDay = calculatePeriodsPerDay(importedYears[year].timeConfig);
+          
+          // Ensure holidays array exists
+          if (!importedYears[year].holidays) {
+            importedYears[year].holidays = ["Sat", "Sun"];
+          }
+        });
+        
+        setYearData(importedYears);
+      }
+      
+      // Process teachers
+      if (importedData.teachers && Array.isArray(importedData.teachers)) {
+        setTeachers(importedData.teachers);
+      }
+      
+      // Process rooms
+      if (importedData.rooms && Array.isArray(importedData.rooms)) {
+        setRooms(importedData.rooms);
+      }
+    }
+  }, [importedData]);
+
+  // Auto-update periodsPerDay when time configuration changes
+  useEffect(() => {
+    setYearData((prev) => {
+      const updated = { ...prev };
+      let changed = false;
+      
+      Object.keys(updated).forEach((year) => {
+        if (updated[year].timeConfig) {
+          const newPeriods = calculatePeriodsPerDay(updated[year].timeConfig);
+          if (updated[year].periodsPerDay !== newPeriods) {
+            updated[year].periodsPerDay = newPeriods;
+            changed = true;
+          }
+        }
+      });
+      
+      return changed ? updated : prev;
+    });
+  }, [yearData]); // Note: This will cause re-renders, but only updates when periods actually change
+
   const handleGenerate = async () => {
     try {
+      // Validate time configuration before generating
+      const validationErrors = [];
+      
+      Object.keys(yearData).forEach((year) => {
+        const timeConfig = yearData[year].timeConfig;
+        if (!timeConfig) {
+          validationErrors.push(`${year}: Missing time configuration`);
+        } else {
+          if (!timeConfig.startTime) validationErrors.push(`${year}: Missing start time`);
+          if (!timeConfig.endTime) validationErrors.push(`${year}: Missing end time`);
+          if (!timeConfig.periodDuration) validationErrors.push(`${year}: Missing period duration`);
+          
+          // Validate that end time is after start time
+          if (timeConfig.startTime && timeConfig.endTime) {
+            const start = new Date(`2000-01-01T${timeConfig.startTime}`);
+            const end = new Date(`2000-01-01T${timeConfig.endTime}`);
+            if (end <= start) {
+              validationErrors.push(`${year}: End time must be after start time`);
+            }
+          }
+        }
+        
+        // Validate subjects exist
+        if (!yearData[year].subjects || yearData[year].subjects.length === 0) {
+          validationErrors.push(`${year}: No subjects defined`);
+        }
+      });
+      
+      if (validationErrors.length > 0) {
+        alert("⚠️ Configuration Errors:\n\n" + validationErrors.join("\n"));
+        return;
+      }
+      
+      // Validate teachers
+      if (!teachers || teachers.length === 0) {
+        alert("⚠️ No teachers defined. Please add at least one teacher.");
+        return;
+      }
+      
+      // Validate rooms
+      if (!rooms || rooms.length === 0) {
+        alert("⚠️ No rooms defined. Please add at least one room.");
+        return;
+      }
+
       const payload = {
         years: yearData,
         teachers: teachers,
-        rooms: rooms, // Include rooms in payload
+        rooms: rooms,
       };
 
       console.log("Sending payload:", payload);
@@ -54,8 +196,8 @@ export default function Wizard({ selectedYears }) {
       setResult(timetable);
       setStep(4);
     } catch (error) {
-      console.error(error);
-      alert("Error generating timetable.");
+      console.error("Generation error:", error);
+      alert("Error generating timetable: " + (error.response?.data?.message || error.message));
     }
   };
 
@@ -108,6 +250,24 @@ export default function Wizard({ selectedYears }) {
     { number: 4, title: "Timetable Result", icon: "📅", color: "cyan" },
   ];
 
+  // Function to export current configuration as JSON
+  const handleExportConfig = () => {
+    const config = {
+      years: yearData,
+      teachers: teachers,
+      rooms: rooms,
+      exportedAt: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(config, null, 2)], {
+      type: "application/json",
+    });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `timetable-config-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+  };
+
   return (
     <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 w-full max-w-6xl mx-auto overflow-hidden">
       {/* Header with Progress Bar */}
@@ -121,8 +281,21 @@ export default function Wizard({ selectedYears }) {
               {stepTitles[step - 1].icon} {stepTitles[step - 1].title}
             </p>
           </div>
-          <div className="px-5 py-3 bg-white/20 backdrop-blur-sm rounded-xl text-white font-bold text-lg border border-white/30">
-            Step {step} of 4
+          <div className="flex items-center gap-3">
+            {/* Export Configuration Button */}
+            {step < 4 && (
+              <button
+                onClick={handleExportConfig}
+                className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white font-medium text-sm border border-white/30 hover:bg-white/30 transition-all flex items-center gap-2"
+                title="Export current configuration as JSON"
+              >
+                <span>💾</span>
+                Export Config
+              </button>
+            )}
+            <div className="px-5 py-3 bg-white/20 backdrop-blur-sm rounded-xl text-white font-bold text-lg border border-white/30">
+              Step {step} of 4
+            </div>
           </div>
         </div>
 

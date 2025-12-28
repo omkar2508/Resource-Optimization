@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 
 const ORDERED_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-// Inside src/components/SchedulerResult.jsx
 function renderCell(cell) {
   if (!cell || cell.length === 0) return <span className="text-gray-300">-</span>;
 
@@ -32,8 +31,10 @@ function renderCell(cell) {
           <div className="text-gray-600 mt-1">
             <span className="block">👤 {entry.teacher}</span>
             <span className="block">📍 {entry.room}</span>
+            {entry.time_slot && (
+              <span className="block text-[9px] text-blue-600">🕐 {entry.time_slot}</span>
+            )}
           </div>
-          {/* Detailed info for Teacher View */}
           {entry.year && (
             <div className="mt-1 border-t pt-1 border-gray-200 text-[9px] font-medium text-gray-500">
               {entry.year} | Div {entry.division}
@@ -44,7 +45,6 @@ function renderCell(cell) {
     </div>
   );
 }
-
 
 function downloadJSON(obj, fileName) {
   const blob = new Blob([JSON.stringify(obj, null, 2)], {
@@ -57,8 +57,7 @@ function downloadJSON(obj, fileName) {
 }
 
 function downloadCSV(table, fileName) {
-  // Export as a timetable grid: header row = days, rows = periods
-  let csv = "Period / Day";
+  let csv = "Time Slot / Day";
   ORDERED_DAYS.forEach((day) => {
     if (table[day]) {
       csv += `,${day}`;
@@ -76,17 +75,15 @@ function downloadCSV(table, fileName) {
     return;
   }
 
-  const periods = Object.keys(table[firstDay])
-    .map((p) => Number(p))
-    .filter((n) => !Number.isNaN(n))
-    .sort((a, b) => a - b);
+  // Get all time slots
+  const timeSlots = Object.keys(table[firstDay] || {}).sort();
 
-  periods.forEach((period) => {
-    csv += `P${period}`;
+  timeSlots.forEach((slot) => {
+    csv += `${slot}`;
 
     ORDERED_DAYS.forEach((day) => {
       if (!table[day]) return;
-      const cell = table[day]?.[period] || [];
+      const cell = table[day]?.[slot] || [];
 
       if (cell.length === 0) {
         csv += ",-";
@@ -123,12 +120,39 @@ function downloadCSV(table, fileName) {
   link.click();
 }
 
+function getSuggestion(item, recommendations) {
+  if (!recommendations || recommendations.length === 0) {
+    return "No specific recommendations available.";
+  }
+
+  const matchingRec = recommendations.find(
+    rec => rec.session?.subject === item.subject && 
+           rec.session?.year === item.year &&
+           rec.session?.division === item.division
+  );
+
+  if (matchingRec && matchingRec.suggestions && matchingRec.suggestions.length > 0) {
+    return matchingRec.suggestions[0];
+  }
+
+  return "Consider adjusting resource allocation or periods per day.";
+}
+
 export default function SchedulerResult({ result, onBack, onSave }) {
+  const navigate = useNavigate();
+
   if (!result) return <p>No timetable received.</p>;
 
   const classTT = result.class_timetable || {};
   const teacherTT = result.teacher_timetable || {};
-  const navigate = useNavigate();
+  const unallocated = result.unallocated || [];
+  const conflicts = result.conflicts || [];
+  const roomConflicts = result.room_conflicts || [];
+  const recommendations = result.recommendations || [];
+  const criticalIssues = result.critical_issues || [];
+  
+  const allConflicts = [...conflicts, ...roomConflicts];
+  const hasIssues = unallocated.length > 0 || allConflicts.length > 0 || criticalIssues.length > 0;
 
   const defaultSave = async (outerKey, table, isTeacher = false) => {
     let payload = {};
@@ -169,6 +193,16 @@ export default function SchedulerResult({ result, onBack, onSave }) {
   };
 
   const handleSave = (outerKey, table, isTeacher = false) => {
+    if (allConflicts.length > 0) {
+      alert("❌ Cannot save timetable with conflicts!\n\nPlease resolve all teacher and room conflicts before saving.");
+      return;
+    }
+
+    if (criticalIssues.length > 0) {
+      alert("❌ Cannot save timetable with critical issues!\n\n" + criticalIssues.join("\n"));
+      return;
+    }
+
     if (onSave) {
       try {
         const maybePromise = onSave(outerKey, table, isTeacher);
@@ -193,201 +227,427 @@ export default function SchedulerResult({ result, onBack, onSave }) {
     });
   };
 
+  const canSave = allConflicts.length === 0 && criticalIssues.length === 0;
+
   return (
-    <div className="p-6 bg-white shadow rounded max-w-5xl mx-auto mt-6">
-      <h2 className="text-2xl font-bold mb-6">Generated Timetable</h2>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* HEADER */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
+          <h2 className="text-3xl font-bold text-gray-800 mb-2">Generated Timetable</h2>
+          <p className="text-gray-600">
+            {criticalIssues.length > 0 
+              ? "🚨 Critical issues detected - cannot generate timetable"
+              : hasIssues 
+                ? "⚠️ Review issues before finalizing" 
+                : "✅ Timetable generated successfully"}
+          </p>
+        </div>
 
-      <h3 className="text-xl font-semibold mb-4">Class Timetables</h3>
-
-      {Object.keys(classTT).map((year) =>
-        Object.keys(classTT[year]).map((division) => {
-          const tt = classTT[year][division];
-          const outerKey = `${year} Div ${division}`;
-
-          return (
-            <div key={`${year}-${division}`} className="mb-10">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-lg font-bold">
-                  {year} – Division {division}
-                </h4>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(outerKey, tt, false)}
-                    className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={() => handleSave(outerKey, tt, false)}
-                    className="px-3 py-1 bg-green-600 text-white rounded text-sm"
-                  >
-                    Save
-                  </button>
-
-                  <button
-                    onClick={() => downloadJSON(tt, outerKey)}
-                    className="px-3 py-1 bg-gray-700 text-white rounded text-sm"
-                  >
-                    Download JSON
-                  </button>
-
-                  <button
-                    onClick={() => downloadCSV(tt, outerKey)}
-                    className="px-3 py-1 bg-gray-500 text-white rounded text-sm"
-                  >
-                    Download CSV
-                  </button>
+        {/* 🚨 CRITICAL ISSUES REPORT */}
+        {criticalIssues.length > 0 && (
+          <div className="bg-red-100 border-2 border-red-400 rounded-2xl p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-red-900 flex items-center gap-3 mb-4">
+              <span className="text-3xl">🚨</span>
+              Critical Issues ({criticalIssues.length})
+            </h2>
+            <p className="text-red-800 mb-4 font-medium">
+              These issues must be resolved before generating a timetable:
+            </p>
+            <div className="space-y-2">
+              {criticalIssues.map((issue, i) => (
+                <div key={i} className="bg-white p-4 rounded-lg border-l-4 border-red-600 shadow-sm">
+                  <p className="text-red-900 font-medium">{issue}</p>
                 </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="min-w-full border border-gray-400">
-                  <thead>
-                    <tr>
-                      <th className="border border-gray-400 p-2 bg-gray-100">
-                        Period / Day
-                      </th>
-                      {ORDERED_DAYS.map((day) => (
-                        tt[day] && (
-                          <th
-                            key={day}
-                            className="border border-gray-400 p-2 bg-gray-100"
-                          >
-                            {day}
-                          </th>
-                        )
-                      ))}
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {tt[ORDERED_DAYS[0]] &&
-                      Object.keys(tt[ORDERED_DAYS[0]])
-                        .sort((a, b) => Number(a) - Number(b))
-                        .map((period) => (
-                          <tr key={period}>
-                            <td className="border border-gray-300 p-2 bg-gray-50 font-semibold">
-                              P{period}
-                            </td>
-
-                            {ORDERED_DAYS.map((day) => (
-                              tt[day] && (
-                                <td
-                                  key={day}
-                                  className="border border-gray-300 p-2 text-sm"
-                                >
-                                  {renderCell(tt[day][period])}
-                                </td>
-                              )
-                            ))}
-                          </tr>
-                        ))}
-                  </tbody>
-                </table>
-              </div>
+              ))}
             </div>
-          );
-        })
-      )}
+          </div>
+        )}
 
-      <h3 className="text-xl font-semibold mb-4 mt-10">Teacher Timetables</h3>
-
-      {Object.keys(teacherTT).map((teacher) => {
-        const tt = teacherTT[teacher];
-
-        return (
-          <div key={teacher} className="mb-10">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-lg font-bold">{teacher}</h4>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(teacher, tt, true)}
-                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-                >
-                  Edit
-                </button>
-
-                <button
-                  onClick={() => handleSave(teacher, tt, true)}
-                  className="px-3 py-1 bg-green-600 text-white rounded text-sm"
-                >
-                  Save
-                </button>
-
-                <button
-                  onClick={() => downloadJSON(tt, teacher)}
-                  className="px-3 py-1 bg-gray-700 text-white rounded text-sm"
-                >
-                  Download JSON
-                </button>
-
-                <button
-                  onClick={() => downloadCSV(tt, teacher)}
-                  className="px-3 py-1 bg-gray-500 text-white rounded text-sm"
-                >
-                  Download CSV
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full border border-gray-400">
-                <thead>
+        {/* 🏢 ROOM CONFLICT REPORT */}
+        {roomConflicts.length > 0 && (
+          <div className="bg-orange-50 border-2 border-orange-300 rounded-2xl p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-orange-800 flex items-center gap-3 mb-4">
+              <span className="text-3xl">🏢</span>
+              Room Conflicts Detected ({roomConflicts.length})
+            </h2>
+            <p className="text-orange-700 mb-4 font-medium">
+              🚫 The following rooms are already occupied at these times. Resolve conflicts before saving.
+            </p>
+            <div className="bg-white rounded-xl overflow-hidden shadow-md border border-orange-200">
+              <table className="w-full text-sm">
+                <thead className="bg-orange-100 text-orange-800 font-bold">
                   <tr>
-                    <th className="border border-gray-400 p-2 bg-gray-100">
-                      Period / Day
-                    </th>
-                    {ORDERED_DAYS.map((day) => (
-                      tt[day] && (
-                        <th
-                          key={day}
-                          className="border border-gray-400 p-2 bg-gray-100"
-                        >
-                          {day}
-                        </th>
-                      )
-                    ))}
+                    <th className="py-3 px-4 text-left">Room</th>
+                    <th className="py-3 px-4 text-left">Day / Time</th>
+                    <th className="py-3 px-4 text-left">Already Occupied By</th>
+                    <th className="py-3 px-4 text-left">Subject</th>
+                    <th className="py-3 px-4 text-left">Teacher</th>
                   </tr>
                 </thead>
-
-                <tbody>
-                  {tt[ORDERED_DAYS[0]] &&
-                    Object.keys(tt[ORDERED_DAYS[0]])
-                      .sort((a, b) => Number(a) - Number(b))
-                      .map((period) => (
-                        <tr key={period}>
-                          <td className="border border-gray-300 p-2 bg-gray-50 font-semibold">
-                            P{period}
-                          </td>
-
-                          {ORDERED_DAYS.map((day) => (
-                            tt[day] && (
-                              <td
-                                key={day}
-                                className="border border-gray-300 p-2 text-sm"
-                              >
-                                {renderCell(tt[day][period])}
-                              </td>
-                            )
-                          ))}
-                        </tr>
-                      ))}
+                <tbody className="divide-y divide-orange-100">
+                  {roomConflicts.map((c, i) => (
+                    <tr key={i} className="hover:bg-orange-50 transition-colors">
+                      <td className="py-3 px-4 font-bold text-gray-800">{c.room}</td>
+                      <td className="py-3 px-4 text-gray-700">
+                        {c.day} - {c.time_slot}
+                      </td>
+                      <td className="py-3 px-4 text-orange-600 font-medium">{c.assigned_to}</td>
+                      <td className="py-3 px-4 text-gray-600">{c.subject}</td>
+                      <td className="py-3 px-4 text-gray-600">{c.teacher}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
-        );
-      })}
+        )}
 
-      <button
-        onClick={onBack}
-        className="mt-6 px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded"
-      >
-        ← Back
-      </button>
+        {/* 📊 MISSING SESSION REPORT */}
+        {unallocated.length > 0 && (
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-amber-800 flex items-center gap-3 mb-4">
+              <span className="text-3xl">⚠️</span>
+              Incomplete Schedule ({unallocated.length} Session{unallocated.length > 1 ? 's' : ''} Missing)
+            </h2>
+            <p className="text-amber-700 mb-4">
+              The following sessions could not be allocated. Review the recommendations below and adjust your configuration.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {unallocated.map((item, i) => (
+                <div key={i} className="bg-white p-5 rounded-xl shadow-md border border-amber-200">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <div className="font-bold text-lg text-gray-800">{item.subject}</div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        <span className="inline-block bg-gray-100 px-2 py-0.5 rounded mr-2">{item.type}</span>
+                        <span>{item.batch}</span>
+                        {item.batch_num && <span className="ml-2 text-purple-600 font-medium">Batch {item.batch_num}</span>}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="bg-amber-200 text-amber-900 px-3 py-1 rounded-full text-sm font-bold">
+                        -{item.missing}h
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {item.assigned || 0}/{item.required || item.missing} assigned
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 💡 RECOMMENDATIONS */}
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-start gap-2">
+                      <span className="text-blue-600 text-lg flex-shrink-0">💡</span>
+                      <div className="flex-1">
+                        <div className="font-semibold text-blue-800 text-sm mb-1">Recommendation:</div>
+                        <div className="text-blue-700 text-xs leading-relaxed">
+                          {getSuggestion(item, recommendations)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 📋 TEACHER CONFLICT REPORT */}
+        {conflicts.length > 0 && (
+          <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-red-800 flex items-center gap-3 mb-4">
+              <span className="text-3xl">❌</span>
+              Teacher Conflicts Detected ({conflicts.length})
+            </h2>
+            <p className="text-red-700 mb-4 font-medium">
+              🚫 The following teachers are already assigned to other classes at these times.
+            </p>
+            <div className="bg-white rounded-xl overflow-hidden shadow-md border border-red-200">
+              <table className="w-full text-sm">
+                <thead className="bg-red-100 text-red-800 font-bold">
+                  <tr>
+                    <th className="py-3 px-4 text-left">Teacher</th>
+                    <th className="py-3 px-4 text-left">Day / Time</th>
+                    <th className="py-3 px-4 text-left">Already Teaching</th>
+                    <th className="py-3 px-4 text-left">Subject</th>
+                    <th className="py-3 px-4 text-left">Room</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-red-100">
+                  {conflicts.map((c, i) => (
+                    <tr key={i} className="hover:bg-red-50 transition-colors">
+                      <td className="py-3 px-4 font-bold text-gray-800">{c.teacher}</td>
+                      <td className="py-3 px-4 text-gray-700">
+                        {c.day} - {c.time_slot}
+                      </td>
+                      <td className="py-3 px-4 text-red-600 font-medium">{c.assigned_to}</td>
+                      <td className="py-3 px-4 text-gray-600">{c.subject}</td>
+                      <td className="py-3 px-4 text-gray-600">{c.room}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* CLASS TIMETABLES */}
+        {Object.keys(classTT).length > 0 && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
+            <h3 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-3">Class Timetables</h3>
+
+            {Object.keys(classTT).map((year) =>
+              Object.keys(classTT[year]).map((division) => {
+                const tt = classTT[year][division];
+                const outerKey = `${year} Div ${division}`;
+
+                return (
+                  <div key={`${year}-${division}`} className="mb-10 last:mb-0">
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+                      <h4 className="text-xl font-bold text-gray-800">
+                        {year} — Division {division}
+                      </h4>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(outerKey, tt, false)}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          onClick={() => handleSave(outerKey, tt, false)}
+                          disabled={!canSave}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm ${
+                            !canSave
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : 'bg-green-600 hover:bg-green-700 text-white'
+                          }`}
+                          title={!canSave ? "Resolve conflicts and critical issues to enable saving" : ""}
+                        >
+                          {!canSave ? "🔒 Save" : "Save"}
+                        </button>
+
+                        <button
+                          onClick={() => downloadJSON(tt, outerKey)}
+                          className="px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                        >
+                          JSON
+                        </button>
+
+                        <button
+                          onClick={() => downloadCSV(tt, outerKey)}
+                          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                        >
+                          CSV
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-gray-200">
+                      <table className="min-w-full border-collapse">
+                        <thead>
+                          <tr className="bg-blue-600 text-white">
+                            <th className="border border-gray-300 p-3 font-bold">
+                              Time Slot / Day
+                            </th>
+                            {ORDERED_DAYS.map((day) => (
+                              tt[day] && (
+                                <th
+                                  key={day}
+                                  className="border border-gray-300 p-3 font-bold"
+                                >
+                                  {day}
+                                </th>
+                              )
+                            ))}
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          {tt[ORDERED_DAYS[0]] &&
+                            Object.keys(tt[ORDERED_DAYS[0]])
+                              .sort()
+                              .map((timeSlot) => (
+                                <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
+                                  <td className="border border-gray-300 p-3 bg-blue-50 font-bold text-blue-700 text-center">
+                                    {timeSlot}
+                                  </td>
+
+                                  {ORDERED_DAYS.map((day) => (
+                                    tt[day] && (
+                                      <td
+                                        key={day}
+                                        className="border border-gray-300 p-3 text-sm align-top"
+                                      >
+                                        {renderCell(tt[day][timeSlot])}
+                                      </td>
+                                    )
+                                  ))}
+                                </tr>
+                              ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* TEACHER TIMETABLES */}
+        {Object.keys(teacherTT).length > 0 && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
+            <h3 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-3">Teacher Timetables</h3>
+
+            {Object.keys(teacherTT).map((teacher) => {
+              const tt = teacherTT[teacher];
+
+              return (
+                <div key={teacher} className="mb-10 last:mb-0">
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+                    <h4 className="text-xl font-bold text-gray-800">{teacher}</h4>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(teacher, tt, true)}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        onClick={() => handleSave(teacher, tt, true)}
+                        disabled={!canSave}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm ${
+                          !canSave
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-green-600 hover:bg-green-700 text-white'
+                        }`}
+                        title={!canSave ? "Resolve conflicts to enable saving" : ""}
+                      >
+                        {!canSave ? "🔒 Save" : "Save"}
+                      </button>
+
+                      <button
+                        onClick={() => downloadJSON(tt, teacher)}
+                        className="px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                      >
+                        JSON
+                      </button>
+
+                      <button
+                        onClick={() => downloadCSV(tt, teacher)}
+                        className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                      >
+                        CSV
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-xl border border-gray-200">
+                    <table className="min-w-full border-collapse">
+                      <thead>
+                        <tr className="bg-blue-600 text-white">
+                          <th className="border border-gray-300 p-3 font-bold">
+                            Time Slot / Day
+                          </th>
+                          {ORDERED_DAYS.map((day) => (
+                            tt[day] && (
+                              <th
+                                key={day}
+                                className="border border-gray-300 p-3 font-bold"
+                              >
+                                {day}
+                              </th>
+                            )
+                          ))}
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {tt[ORDERED_DAYS[0]] &&
+                          Object.keys(tt[ORDERED_DAYS[0]])
+                            .sort()
+                            .map((timeSlot) => (
+                              <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
+                                <td className="border border-gray-300 p-3 bg-blue-50 font-bold text-blue-700 text-center">
+                                  {timeSlot}
+                                </td>
+
+                                {ORDERED_DAYS.map((day) => (
+                                  tt[day] && (
+                                    <td
+                                      key={day}
+                                      className="border border-gray-300 p-3 text-sm align-top"
+                                    >
+                                      {renderCell(tt[day][timeSlot])}
+                                    </td>
+                                  )
+                                ))}
+                              </tr>
+                            ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* GLOBAL SAVE ALL BUTTON */}
+        {Object.keys(classTT).length > 0 && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
+            <button
+              onClick={() => {
+                if (!canSave) {
+                  alert("❌ Cannot save timetables!\n\n" + 
+                    (allConflicts.length > 0 ? "• Resolve all conflicts (teachers and rooms)\n" : "") +
+                    (criticalIssues.length > 0 ? "• Fix critical issues\n" : ""));
+                  return;
+                }
+                Object.keys(classTT).forEach(year => {
+                  Object.keys(classTT[year]).forEach(division => {
+                    const tt = classTT[year][division];
+                    const outerKey = `${year} Div ${division}`;
+                    handleSave(outerKey, tt, false);
+                  });
+                });
+              }}
+              disabled={!canSave}
+              className={`w-full py-4 rounded-xl font-bold text-lg transition-all shadow-lg ${
+                !canSave
+                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white'
+              }`}
+            >
+              {!canSave 
+                ? "🔒 Resolve Issues to Save All" 
+                : "💾 Save All Class Timetables"}
+            </button>
+            
+            {unallocated.length > 0 && canSave && (
+              <p className="text-sm text-amber-600 text-center mt-3">
+                ⚠️ Warning: Saving with {unallocated.length} unallocated session(s). Consider adjusting configuration.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* BACK BUTTON */}
+        <div className="flex justify-center">
+          <button
+            onClick={onBack}
+            className="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition-colors shadow-sm"
+          >
+            ← Back to Configuration
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
