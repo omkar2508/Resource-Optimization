@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { toast } from "react-toastify";
 
-
 export default function SubjectsPanel({ year, yearData, setYearData }) {
   const [subject, setSubject] = useState({
     code: "",
@@ -9,16 +8,18 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
     type: "Theory",
     hours: "",
     batches: 1,
+    labDuration: 2, // NEW: Default lab duration in hours
   });
 
   function addSubject() {
-    // if (!subject.code.trim() || !subject.name.trim()) {
-    //   alert("Code & Name required");
-    //   return;
-    // }
-    //Toast
     if (!subject.code.trim() || !subject.name.trim()) {
       toast.error("Subject code and name are required");
+      return;
+    }
+
+    // Validate lab duration
+    if (subject.type === "Lab" && (!subject.labDuration || subject.labDuration < 1 || subject.labDuration > 3)) {
+      toast.error("Lab duration must be between 1 and 3 hours");
       return;
     }
 
@@ -29,17 +30,16 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
       [year]: { ...prev[year], subjects: updated },
     }));
 
-    // Add toast 24.12.2025
-    toast.success(
-      `${subject.code} - ${subject.name} added successfully`
-    );
+    toast.success(`${subject.code} - ${subject.name} added successfully`);
 
     setSubject({ 
       code: "", 
       name: "", 
       type: "Theory", 
       hours: "", 
-      batches: 1 });
+      batches: 1,
+      labDuration: 2
+    });
   }
 
   function removeSubject(index) {
@@ -128,11 +128,37 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
             onChange={(e) =>
               setSubject({
                 ...subject,
-                hours:
-                  e.target.value === "" ? "" : Number(e.target.value),
+                hours: e.target.value === "" ? "" : Number(e.target.value),
               })
             }
           />
+
+          {subject.type === "Lab" && (
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold mb-2 text-purple-700">
+                🕐 Lab Duration (Continuous Hours)
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {[1, 2, 3].map((duration) => (
+                  <button
+                    key={duration}
+                    type="button"
+                    onClick={() => setSubject({ ...subject, labDuration: duration })}
+                    className={`px-4 py-3 rounded-lg font-semibold transition-all ${
+                      subject.labDuration === duration
+                        ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg"
+                        : "bg-white border-2 border-purple-200 text-purple-700 hover:border-purple-400"
+                    }`}
+                  >
+                    {duration} Hour{duration > 1 ? "s" : ""}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                Lab will occupy {subject.labDuration} continuous time slot{subject.labDuration > 1 ? "s" : ""}
+              </p>
+            </div>
+          )}
 
           {subject.type !== "Theory" && (
             <input
@@ -195,6 +221,12 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
                         <span>⏰</span>
                         {s.hours} hrs/week
                       </span>
+                      {s.type === "Lab" && s.labDuration && (
+                        <span className="flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-semibold">
+                          <span>🕐</span>
+                          {s.labDuration}h continuous
+                        </span>
+                      )}
                       {s.type !== "Theory" && (
                         <span className="flex items-center gap-1">
                           <span>👥</span>

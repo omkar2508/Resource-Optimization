@@ -1,6 +1,7 @@
-// src/pages/TeacherTimetable.jsx
+// src/pages/TeacherTimetable.jsx - FIXED: Uses unified renderer
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { TimetableTable, downloadTimetableCSV } from "../utils/renderTimetableCell.jsx";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -66,7 +67,7 @@ export default function TeacherTimetable() {
 
             <div className="flex gap-2">
               <button
-                onClick={() => downloadCSV(tt.timetable, tt.teacher)}
+                onClick={() => downloadTimetableCSV(tt.timetable, tt.teacher, DAYS)}
                 className="px-3 py-1 bg-gray-700 text-white rounded text-sm hover:bg-gray-800 transition"
               >
                 Download CSV
@@ -74,7 +75,16 @@ export default function TeacherTimetable() {
             </div>
           </div>
 
-          <TeacherTable data={tt.timetable} />
+          {/* ✅ UNIFIED RENDERER - Same as generated timetable, showing year/division */}
+          <TimetableTable 
+            data={tt.timetable} 
+            DAYS={DAYS}
+            renderOptions={{
+              showYearDivision: true,   // Show which class they're teaching
+              filterByBatch: null,       // No batch filtering
+              highlightBatch: false      // No highlighting
+            }}
+          />
         </div>
       ))}
     </div>
@@ -119,6 +129,7 @@ function buildTeacherTimetablesFromClass(classTimetables) {
           }
 
           // Add this class to teacher's timetable
+          // ✅ PRESERVE ALL FIELDS including lab_part for multi-hour labs
           teacherMap[teacher][day][timeSlot].push({
             subject: entry.subject,
             type: entry.type,
@@ -126,7 +137,9 @@ function buildTeacherTimetablesFromClass(classTimetables) {
             division: entry.division || division,
             room: entry.room,
             batch: entry.batch,
-            time_slot: timeSlot
+            time_slot: timeSlot,
+            lab_part: entry.lab_part,              // ✅ CRITICAL: Preserve lab_part
+            lab_session_id: entry.lab_session_id   // ✅ CRITICAL: Preserve session ID
           });
         });
       });
@@ -155,141 +168,4 @@ function buildTeacherTimetablesFromClass(classTimetables) {
       days: Array.from(daysSet)
     };
   }).sort((a, b) => a.teacher.localeCompare(b.teacher));
-}
-
-function downloadCSV(table, filename) {
-  // Get all time slots
-  const allTimeSlots = new Set();
-  DAYS.forEach(day => {
-    if (table[day]) {
-      Object.keys(table[day]).forEach(slot => allTimeSlots.add(slot));
-    }
-  });
-  const sortedTimeSlots = Array.from(allTimeSlots).sort();
-
-  let csv = "Time Slot / Day";
-  DAYS.forEach((d) => {
-    if (table[d]) csv += `,${d}`;
-  });
-  csv += "\n";
-
-  sortedTimeSlots.forEach((slot) => {
-    csv += `${slot}`;
-    DAYS.forEach((d) => {
-      if (!table[d]) return;
-      const cell = table[d]?.[slot] || [];
-
-      if (cell.length === 0) {
-        csv += ",-";
-      } else {
-        const combined = cell
-          .map((entry) => {
-            const subj = entry.subject || "-";
-            const yr = entry.year || "";
-            const div = entry.division || "";
-            const room = entry.room || "";
-            const batch = entry.batch ? `B${entry.batch}` : "";
-
-            const extra = [yr, div && `Div${div}`, room, batch]
-              .filter(Boolean)
-              .join(" ");
-
-            return `${subj} (${extra})`;
-          })
-          .join(" | ");
-
-        csv += `,"${combined}"`;
-      }
-    });
-    csv += "\n";
-  });
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = filename + ".csv";
-  link.click();
-}
-
-function TeacherTable({ data }) {
-  if (!data) return null;
-
-  // Get all unique time slots
-  const allTimeSlots = new Set();
-  DAYS.forEach(day => {
-    if (data[day]) {
-      Object.keys(data[day]).forEach(slot => allTimeSlots.add(slot));
-    }
-  });
-  const sortedTimeSlots = Array.from(allTimeSlots).sort();
-
-  return (
-    <div className="overflow-x-auto rounded-2xl border border-gray-100">
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="bg-blue-600 text-white font-bold">
-            <th className="border p-4 w-32 text-center">Time Slot</th>
-            {DAYS.map((d) => data[d] && (
-              <th key={d} className="border p-4 min-w-[160px] text-center">
-                {d}
-              </th>
-            ))}
-          </tr>
-        </thead>
-
-        <tbody>
-          {sortedTimeSlots.map((timeSlot) => (
-            <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
-              <td className="border p-4 font-black bg-blue-50 text-blue-700 text-center text-sm">
-                {timeSlot}
-              </td>
-
-              {DAYS.map((d) => data[d] && (
-                <td key={d} className="border p-3 align-top min-h-[110px]">
-                  {(data[d]?.[timeSlot] || []).map((entry, i) => (
-                    <div
-                      key={i}
-                      className={`p-3 mb-2 border-l-4 rounded-xl shadow-md transition-transform hover:scale-[1.02] ${
-                        entry.type === 'Theory' 
-                          ? 'bg-blue-50 border-blue-500' 
-                          : 'bg-purple-50 border-purple-500'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <div className="font-bold text-gray-900 text-[13px]">
-                          {entry.subject}
-                        </div>
-                        {entry.batch && (
-                          <span className="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">
-                            B{entry.batch}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[11px] text-gray-600 mt-2 space-y-1">
-                        {entry.year && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="opacity-70">📚</span> {entry.year} — Div {entry.division}
-                          </div>
-                        )}
-                        {entry.room && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="opacity-70">📍</span> {entry.room}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {(data[d]?.[timeSlot] || []).length === 0 && (
-                    <div className="py-8 text-center">
-                      <span className="text-gray-300 font-medium tracking-widest text-[10px] uppercase">Free</span>
-                    </div>
-                  )}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
 }

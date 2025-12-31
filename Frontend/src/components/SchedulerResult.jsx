@@ -1,50 +1,10 @@
+// src/pages/SchedulerResult1.jsx - UPDATED: Uses unified renderer
 import React from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { renderTimetableCell, downloadTimetableCSV } from "../utils/renderTimetableCell";
 
 const ORDERED_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-function renderCell(cell) {
-  if (!cell || cell.length === 0) return <span className="text-gray-300">-</span>;
-
-  return (
-    <div className="flex flex-col gap-1 min-h-[60px]">
-      {cell.map((entry, idx) => (
-        <div 
-          key={idx} 
-          className={`p-2 text-[11px] leading-tight border-l-4 rounded shadow-sm ${
-            entry.type === 'Theory' 
-              ? 'bg-blue-50 border-blue-500' 
-              : 'bg-purple-50 border-purple-500'
-          }`}
-        >
-          <div className="flex justify-between items-start">
-            <span className="font-bold text-gray-800">
-              {entry.type === "Lab" ? "🧪 " : ""}{entry.subject}
-            </span>
-            {entry.batch && (
-              <span className="bg-purple-200 text-purple-800 px-1 rounded font-bold">
-                B{entry.batch}
-              </span>
-            )}
-          </div>
-          <div className="text-gray-600 mt-1">
-            <span className="block">👤 {entry.teacher}</span>
-            <span className="block">📍 {entry.room}</span>
-            {entry.time_slot && (
-              <span className="block text-[9px] text-blue-600">🕐 {entry.time_slot}</span>
-            )}
-          </div>
-          {entry.year && (
-            <div className="mt-1 border-t pt-1 border-gray-200 text-[9px] font-medium text-gray-500">
-              {entry.year} | Div {entry.division}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function downloadJSON(obj, fileName) {
   const blob = new Blob([JSON.stringify(obj, null, 2)], {
@@ -53,70 +13,6 @@ function downloadJSON(obj, fileName) {
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = fileName + ".json";
-  link.click();
-}
-
-function downloadCSV(table, fileName) {
-  let csv = "Time Slot / Day";
-  ORDERED_DAYS.forEach((day) => {
-    if (table[day]) {
-      csv += `,${day}`;
-    }
-  });
-  csv += "\n";
-
-  const firstDay = ORDERED_DAYS.find((d) => table[d]);
-  if (!firstDay) {
-    const blobEmpty = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const linkEmpty = document.createElement("a");
-    linkEmpty.href = URL.createObjectURL(blobEmpty);
-    linkEmpty.download = fileName + ".csv";
-    linkEmpty.click();
-    return;
-  }
-
-  // Get all time slots
-  const timeSlots = Object.keys(table[firstDay] || {}).sort();
-
-  timeSlots.forEach((slot) => {
-    csv += `${slot}`;
-
-    ORDERED_DAYS.forEach((day) => {
-      if (!table[day]) return;
-      const cell = table[day]?.[slot] || [];
-
-      if (cell.length === 0) {
-        csv += ",-";
-      } else {
-        const combined = cell
-          .map((entry) => {
-            const subj = entry.subject || "-";
-            const teach = entry.teacher || "-";
-            const yr = entry.year || "";
-            const div = entry.division || "";
-            const room = entry.room || "";
-
-            const extra = [yr && `Y:${yr}`, div && `Div:${div}`, room && `R:${room}`]
-              .filter(Boolean)
-              .join(" ");
-
-            return extra
-              ? `${subj} (${teach} ${extra})`
-              : `${subj} (${teach})`;
-          })
-          .join(" | ");
-
-        csv += `,"${combined}"`;
-      }
-    });
-
-    csv += "\n";
-  });
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = fileName + ".csv";
   link.click();
 }
 
@@ -150,6 +46,10 @@ export default function SchedulerResult({ result, onBack, onSave }) {
   const roomConflicts = result.room_conflicts || [];
   const recommendations = result.recommendations || [];
   const criticalIssues = result.critical_issues || [];
+  
+  const labConflicts = result.lab_conflicts || [];
+  const breakInterruptedLabs = labConflicts.filter(c => c.reason === 'break_interruption');
+  const hasBreakConflicts = breakInterruptedLabs.length > 0;
   
   const allConflicts = [...conflicts, ...roomConflicts];
   const hasIssues = unallocated.length > 0 || allConflicts.length > 0 || criticalIssues.length > 0;
@@ -264,7 +164,94 @@ export default function SchedulerResult({ result, onBack, onSave }) {
           </div>
         )}
 
-        {/* 🏢 ROOM CONFLICT REPORT */}
+        {/* BREAK INTERRUPTION CONFLICTS */}
+        {hasBreakConflicts && (
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-400 rounded-2xl p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-red-900 flex items-center gap-3 mb-4">
+              <span className="text-3xl">⏰</span>
+              Break Interruption Detected ({breakInterruptedLabs.length} Lab{breakInterruptedLabs.length > 1 ? 's' : ''})
+            </h2>
+            <p className="text-red-800 mb-4 font-medium">
+              🚫 The following continuous labs cannot be scheduled because breaks interrupt the required time slots:
+            </p>
+            
+            <div className="space-y-4">
+              {breakInterruptedLabs.map((conflict, i) => (
+                <div key={i} className="bg-white p-5 rounded-xl shadow-md border-l-4 border-red-600">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="font-bold text-xl text-gray-900">{conflict.subject}</span>
+                        <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
+                          {conflict.total_duration}-Hour Continuous Lab
+                        </span>
+                        {conflict.batch && (
+                          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                            Batch {conflict.batch}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {conflict.year} - Division {conflict.division} - {conflict.day}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-red-50 p-4 rounded-lg border border-red-200 mb-4">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">🚫</span>
+                      <div className="flex-1">
+                        <div className="font-semibold text-red-900 mb-2">Conflict Details:</div>
+                        <div className="text-sm text-red-800 space-y-1">
+                          <div>• Attempted start: <span className="font-mono font-bold">{conflict.attempted_start}</span></div>
+                          <div>• Break location: <span className="font-mono font-bold">{conflict.break_slot}</span></div>
+                          <div>• Break interrupts at: Hour {conflict.break_position} of {conflict.total_duration}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">💡</span>
+                      <div className="flex-1">
+                        <div className="font-semibold text-blue-900 mb-2">Recommended Solutions:</div>
+                        <div className="text-sm text-blue-800 space-y-2">
+                          <div className="flex items-start gap-2">
+                            <span className="font-bold">1.</span>
+                            <span>Move the break to <span className="font-bold">before</span> this {conflict.total_duration}-hour time window on {conflict.day}</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <span className="font-bold">2.</span>
+                            <span>Move the break to <span className="font-bold">after</span> this {conflict.total_duration}-hour time window on {conflict.day}</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <span className="font-bold">3.</span>
+                            <span>Schedule this lab on a <span className="font-bold">different day</span> with {conflict.total_duration} consecutive free slots</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">⚡</span>
+                <div className="flex-1">
+                  <div className="font-bold text-yellow-900">Quick Fix:</div>
+                  <div className="text-sm text-yellow-800 mt-1">
+                    Go to Year Configuration → Time Configuration → Adjust lunch/break timing to avoid interrupting {breakInterruptedLabs.length} continuous lab{breakInterruptedLabs.length > 1 ? 's' : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ROOM & TEACHER CONFLICTS - Keep existing code */}
         {roomConflicts.length > 0 && (
           <div className="bg-orange-50 border-2 border-orange-300 rounded-2xl p-6 shadow-lg">
             <h2 className="text-2xl font-bold text-orange-800 flex items-center gap-3 mb-4">
@@ -303,7 +290,7 @@ export default function SchedulerResult({ result, onBack, onSave }) {
           </div>
         )}
 
-        {/* 📊 MISSING SESSION REPORT */}
+        {/* UNALLOCATED SESSIONS - Keep existing code */}
         {unallocated.length > 0 && (
           <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-6 shadow-lg">
             <h2 className="text-2xl font-bold text-amber-800 flex items-center gap-3 mb-4">
@@ -353,7 +340,7 @@ export default function SchedulerResult({ result, onBack, onSave }) {
           </div>
         )}
 
-        {/* 📋 TEACHER CONFLICT REPORT */}
+        📋 TEACHER CONFLICT REPORT
         {conflicts.length > 0 && (
           <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-6 shadow-lg">
             <h2 className="text-2xl font-bold text-red-800 flex items-center gap-3 mb-4">
@@ -402,6 +389,15 @@ export default function SchedulerResult({ result, onBack, onSave }) {
                 const tt = classTT[year][division];
                 const outerKey = `${year} Div ${division}`;
 
+                // Get all unique time slots
+                const allTimeSlots = new Set();
+                ORDERED_DAYS.forEach((day) => {
+                  if (tt[day]) {
+                    Object.keys(tt[day]).forEach((slot) => allTimeSlots.add(slot));
+                  }
+                });
+                const sortedTimeSlots = Array.from(allTimeSlots).sort();
+
                 return (
                   <div key={`${year}-${division}`} className="mb-10 last:mb-0">
                     <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
@@ -438,7 +434,7 @@ export default function SchedulerResult({ result, onBack, onSave }) {
                         </button>
 
                         <button
-                          onClick={() => downloadCSV(tt, outerKey)}
+                          onClick={() => downloadTimetableCSV(tt, outerKey, ORDERED_DAYS)}
                           className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
                         >
                           CSV
@@ -446,6 +442,7 @@ export default function SchedulerResult({ result, onBack, onSave }) {
                       </div>
                     </div>
 
+                    {/* ✅ USE UNIFIED RENDERER */}
                     <div className="overflow-x-auto rounded-xl border border-gray-200">
                       <table className="min-w-full border-collapse">
                         <thead>
@@ -467,27 +464,28 @@ export default function SchedulerResult({ result, onBack, onSave }) {
                         </thead>
 
                         <tbody>
-                          {tt[ORDERED_DAYS[0]] &&
-                            Object.keys(tt[ORDERED_DAYS[0]])
-                              .sort()
-                              .map((timeSlot) => (
-                                <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
-                                  <td className="border border-gray-300 p-3 bg-blue-50 font-bold text-blue-700 text-center">
-                                    {timeSlot}
-                                  </td>
+                          {sortedTimeSlots.map((timeSlot) => (
+                            <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
+                              <td className="border border-gray-300 p-3 bg-blue-50 font-bold text-blue-700 text-center">
+                                {timeSlot}
+                              </td>
 
-                                  {ORDERED_DAYS.map((day) => (
-                                    tt[day] && (
-                                      <td
-                                        key={day}
-                                        className="border border-gray-300 p-3 text-sm align-top"
-                                      >
-                                        {renderCell(tt[day][timeSlot])}
-                                      </td>
-                                    )
-                                  ))}
-                                </tr>
+                              {ORDERED_DAYS.map((day) => (
+                                tt[day] && (
+                                  <td
+                                    key={day}
+                                    className="border border-gray-300 p-3 text-sm align-top"
+                                  >
+                                    {renderTimetableCell(tt[day][timeSlot], {
+                                      showYearDivision: false,
+                                      filterByBatch: null,
+                                      highlightBatch: false
+                                    })}
+                                  </td>
+                                )
                               ))}
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
@@ -505,6 +503,15 @@ export default function SchedulerResult({ result, onBack, onSave }) {
 
             {Object.keys(teacherTT).map((teacher) => {
               const tt = teacherTT[teacher];
+
+              // Get all unique time slots
+              const allTimeSlots = new Set();
+              ORDERED_DAYS.forEach((day) => {
+                if (tt[day]) {
+                  Object.keys(tt[day]).forEach((slot) => allTimeSlots.add(slot));
+                }
+              });
+              const sortedTimeSlots = Array.from(allTimeSlots).sort();
 
               return (
                 <div key={teacher} className="mb-10 last:mb-0">
@@ -540,7 +547,7 @@ export default function SchedulerResult({ result, onBack, onSave }) {
                       </button>
 
                       <button
-                        onClick={() => downloadCSV(tt, teacher)}
+                        onClick={() => downloadTimetableCSV(tt, teacher, ORDERED_DAYS)}
                         className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
                       >
                         CSV
@@ -548,6 +555,7 @@ export default function SchedulerResult({ result, onBack, onSave }) {
                     </div>
                   </div>
 
+                  {/* ✅ USE UNIFIED RENDERER WITH YEAR/DIVISION */}
                   <div className="overflow-x-auto rounded-xl border border-gray-200">
                     <table className="min-w-full border-collapse">
                       <thead>
@@ -569,27 +577,28 @@ export default function SchedulerResult({ result, onBack, onSave }) {
                       </thead>
 
                       <tbody>
-                        {tt[ORDERED_DAYS[0]] &&
-                          Object.keys(tt[ORDERED_DAYS[0]])
-                            .sort()
-                            .map((timeSlot) => (
-                              <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
-                                <td className="border border-gray-300 p-3 bg-blue-50 font-bold text-blue-700 text-center">
-                                  {timeSlot}
-                                </td>
+                        {sortedTimeSlots.map((timeSlot) => (
+                          <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
+                            <td className="border border-gray-300 p-3 bg-blue-50 font-bold text-blue-700 text-center">
+                              {timeSlot}
+                            </td>
 
-                                {ORDERED_DAYS.map((day) => (
-                                  tt[day] && (
-                                    <td
-                                      key={day}
-                                      className="border border-gray-300 p-3 text-sm align-top"
-                                    >
-                                      {renderCell(tt[day][timeSlot])}
-                                    </td>
-                                  )
-                                ))}
-                              </tr>
+                            {ORDERED_DAYS.map((day) => (
+                              tt[day] && (
+                                <td
+                                  key={day}
+                                  className="border border-gray-300 p-3 text-sm align-top"
+                                >
+                                  {renderTimetableCell(tt[day][timeSlot], {
+                                    showYearDivision: true,  // Show year/div in teacher view
+                                    filterByBatch: null,
+                                    highlightBatch: false
+                                  })}
+                                </td>
+                              )
                             ))}
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -599,7 +608,7 @@ export default function SchedulerResult({ result, onBack, onSave }) {
           </div>
         )}
 
-        {/* GLOBAL SAVE ALL BUTTON */}
+        {/* GLOBAL SAVE ALL BUTTON - Keep existing */}
         {Object.keys(classTT).length > 0 && (
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
             <button

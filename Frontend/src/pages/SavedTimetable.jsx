@@ -1,7 +1,8 @@
-// src/pages/SavedTimetable.jsx
+// src/pages/SavedTimetable.jsx - FIXED: Uses unified renderer
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { TimetableTable, downloadTimetableCSV } from "../utils/renderTimetableCell.jsx";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -79,57 +80,6 @@ export default function SavedTimetable() {
     }
   };
 
-  const downloadCSV = (table, filename) => {
-    // Get all time slots from first available day
-    const firstDay = DAYS.find(d => table[d] && Object.keys(table[d]).length > 0);
-    if (!firstDay) return;
-    
-    const timeSlots = Object.keys(table[firstDay]).sort();
-    
-    let csv = "Time Slot / Day";
-    DAYS.forEach((d) => {
-      if (table[d]) csv += `,${d}`;
-    });
-    csv += "\n";
-
-    timeSlots.forEach((slot) => {
-      csv += `${slot}`;
-      DAYS.forEach((d) => {
-        if (!table[d]) return;
-        const cell = table[d]?.[slot] || [];
-
-        if (cell.length === 0) {
-          csv += ",-";
-        } else {
-          const combined = cell
-            .map((entry) => {
-              const extra = [
-                entry.year && `Y:${entry.year}`,
-                entry.division && `Div:${entry.division}`,
-                entry.room && `R:${entry.room}`,
-              ]
-                .filter(Boolean)
-                .join(" ");
-
-              return extra
-                ? `${entry.subject} (${entry.teacher} ${extra})`
-                : `${entry.subject} (${entry.teacher})`;
-            })
-            .join(" | ");
-
-          csv += `,"${combined}"`;
-        }
-      });
-      csv += "\n";
-    });
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = filename + ".csv";
-    link.click();
-  };
-
   if (loading)
     return (
       <div className="p-6 flex flex-col items-center justify-center">
@@ -157,9 +107,10 @@ export default function SavedTimetable() {
             <div className="flex gap-2">
               <button
                 onClick={() =>
-                  downloadCSV(
+                  downloadTimetableCSV(
                     item.timetableData,
-                    `${item.year}_Div${item.division}`
+                    `${item.year}_Div${item.division}`,
+                    DAYS
                   )
                 }
                 className="px-3 py-1 bg-gray-700 text-white rounded text-sm"
@@ -176,87 +127,18 @@ export default function SavedTimetable() {
             </div>
           </div>
 
-          <TableViewer data={item.timetableData} />
+          {/* ✅ UNIFIED RENDERER - Same as generated timetable */}
+          <TimetableTable 
+            data={item.timetableData} 
+            DAYS={DAYS}
+            renderOptions={{
+              showYearDivision: false,  // Don't show year/div in class timetables
+              filterByBatch: null,       // No batch filtering
+              highlightBatch: false      // No highlighting
+            }}
+          />
         </div>
       ))}
-    </div>
-  );
-}
-
-function TableViewer({ data }) {
-  if (!data) return null;
-
-  // Get all unique time slots across all days
-  const allTimeSlots = new Set();
-  DAYS.forEach((day) => {
-    if (data[day]) {
-      Object.keys(data[day]).forEach((slot) => allTimeSlots.add(slot));
-    }
-  });
-  
-  // Sort time slots
-  const sortedTimeSlots = Array.from(allTimeSlots).sort();
-
-  return (
-    <div className="overflow-x-auto rounded-2xl border border-gray-100">
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="bg-blue-600 text-white font-bold">
-            <th className="border p-4 w-32 text-center">Time Slot</th>
-            {DAYS.map(
-              (d) =>
-                data[d] && (
-                  <th key={d} className="border p-4 min-w-[160px] text-center">
-                    {d}
-                  </th>
-                )
-            )}
-          </tr>
-        </thead>
-
-        <tbody>
-          {sortedTimeSlots.map((timeSlot) => (
-            <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
-              <td className="border p-4 font-black bg-blue-50 text-blue-700 text-center text-sm">
-                {timeSlot}
-              </td>
-
-              {DAYS.map(
-                (d) =>
-                  data[d] && (
-                    <td key={d} className="border p-3 align-top min-h-[110px]">
-                      {(data[d][timeSlot] || []).map((entry, i) => (
-                        <div
-                          key={i}
-                          className={`p-3 mb-2 border-l-4 rounded-xl shadow-md ${
-                            entry.type === "Theory"
-                              ? "bg-blue-50 border-blue-500"
-                              : "bg-purple-50 border-purple-500"
-                          }`}
-                        >
-                          <div className="flex justify-between items-start mb-1">
-                            <div className="font-bold text-gray-900 text-[13px]">
-                              {entry.subject}
-                            </div>
-                            {entry.batch && (
-                              <span className="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">
-                                B{entry.batch}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-gray-600 mt-2">
-                            👤 {entry.teacher} <br />
-                            📍 {entry.room}
-                          </div>
-                        </div>
-                      ))}
-                    </td>
-                  )
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
