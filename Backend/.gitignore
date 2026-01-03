@@ -141,3 +141,10 @@ vite.config.ts.timestamp-*
 .vite/
 
 node_modules
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
