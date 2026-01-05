@@ -24,6 +24,8 @@ export default function TeacherForm({
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null);
 
+  const [maxHoursPerDay, setMaxHoursPerDay] = useState(4); // ✅ NEW: Max teaching hours per day
+
   // =====================================================
   // Fetch teachers (role = teacher)
   // =====================================================
@@ -149,12 +151,13 @@ export default function TeacherForm({
     const teacherObj = {
       id: editingId || Date.now(),
       teacherId: teacherUser._id,
-      name: teacherUser.name, // ONLY NAME
+      name: teacherUser.name,
       subjects: selectedSubjects,
       years: selectedYearsLocal,
       divisions: divisionsByYear,
       canTakeLabs,
       canTakeTutorial,
+      maxHoursPerDay, // ✅ NEW: Include max hours
     };
 
     if (editingId) {
@@ -178,8 +181,8 @@ export default function TeacherForm({
     setDivisionsByYear({});
     setCanTakeLabs(false);
     setCanTakeTutorial(false);
+    setMaxHoursPerDay(4); // ✅ NEW: Reset to default
   }
-
   // =====================================================
   // Edit / Delete
   // =====================================================
@@ -191,6 +194,7 @@ export default function TeacherForm({
     setDivisionsByYear(t.divisions);
     setCanTakeLabs(t.canTakeLabs || false);
     setCanTakeTutorial(t.canTakeTutorial || false);
+    setMaxHoursPerDay(t.maxHoursPerDay || 4); // ✅ NEW: Load existing value
   }
 
   function deleteTeacher(id) {
@@ -314,6 +318,24 @@ export default function TeacherForm({
         </label>
 
         {error && <div className="text-red-600 mb-2">{error}</div>}
+        
+        {/* ✅ NEW: Max Teaching Hours Per Day */}
+        <div className="mb-3">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Max Teaching Hours Per Day
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="8"
+            value={maxHoursPerDay}
+            onChange={(e) => setMaxHoursPerDay(Number(e.target.value))}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Maximum number of teaching hours this teacher can be assigned in a single day (default: 4)
+          </p>
+        </div>
 
         <button
           onClick={saveTeacher}
@@ -353,6 +375,7 @@ export default function TeacherForm({
                 <th className="border p-2 text-left">Subjects</th>
                 <th className="border p-2 text-left">Years</th>
                 <th className="border p-2 text-center">Actions</th>
+                <th className="border p-2 text-left">Max Hrs/Day</th>
               </tr>
             </thead>
 
@@ -389,6 +412,7 @@ export default function TeacherForm({
                         Delete
                       </button>
                     </td>
+                    <td className="border p-2">{t.maxHoursPerDay || 4}</td>
                   </tr>
                 ))}
             </tbody>
@@ -399,3 +423,4 @@ export default function TeacherForm({
     </div>
   );
 }
+

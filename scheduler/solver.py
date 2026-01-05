@@ -235,16 +235,22 @@ def check_continuous_slots_available(class_tt, teacher_tt, room_tt, yname, div, 
 
 def allocate_lab_continuous(req, day, start_slot_idx, class_tt, teacher_tt, room_tt, 
                             teachers, rooms, year_time_slots, saved_timetables, 
-                            lab_conflicts):
+                            lab_conflicts, teacher_limits=None):
     """
     Allocate a lab that spans multiple continuous hours.
-    Returns: (success: bool, conflict_info: dict)
+    âœ… NEW: Respects teacher daily load limits
     """
     yname, div, code, batch = req["year"], req["div"], req["code"], req["batch"]
     lab_duration = req.get("lab_duration", 1)
     
     # Find eligible teacher
     eligible = [t for t in teachers if any(s["code"] == code for s in t.get("subjects", []))]
+    
+    # âœ… NEW: Filter by daily load (check if teacher can take lab_duration hours today)
+    if teacher_limits:
+        eligible = [t for t in eligible 
+                   if teacher_limits[t["name"]]["daily_count"][day] + lab_duration 
+                      <= teacher_limits[t["name"]]["max_per_day"]]
     
     best_conflict = None
     
@@ -290,9 +296,14 @@ def allocate_lab_continuous(req, day, start_slot_idx, class_tt, teacher_tt, room
                         "division": div
                     })
                 
+                # âœ… NEW: Increment teacher daily count by lab_duration
+                if teacher_limits:
+                    for _ in range(lab_duration):
+                        increment_teacher_daily_count(t["name"], day, teacher_limits)
+                
                 return True, None
             
-            # Track break interruption conflicts
+            # Track conflicts...
             if conflict_info["reason"] == "break_interruption":
                 if not best_conflict or best_conflict["reason"] != "break_interruption":
                     best_conflict = {
@@ -485,10 +496,14 @@ def get_previous_slot_subject(class_tt, yname, div, day, current_slot_idx, time_
     
     return None
 
-def allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, teachers, rooms, saved_timetables=None):
+def allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, teachers, rooms, 
+                  saved_timetables=None, teacher_limits=None, previous_subject=None):
     """
-    Allocate a single time slot (for Theory and single-hour practicals).
-    FIXED: Now uses centralized batch availability check.
+    Allocate a single time slot with teacher load balancing and subject alternation.
+    
+    NEW PARAMETERS:
+    - teacher_limits: dict tracking daily teacher hours
+    - previous_subject: subject code from previous slot (for alternation)
     """
     yname, div, code, stype, batch = req["year"], req["div"], req["code"], req["type"], req["batch"]
     slot_key = slot_info["slot_key"]
@@ -506,8 +521,26 @@ def allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, teachers, 
         current_occupants = class_tt[yname][div][day].get(slot_key, [])
         if len(current_occupants) > 0:
             return False
+        
+        # âœ… NEW: Subject alternation check
+        if previous_subject is not None and code == previous_subject:
+            # Try to avoid repeating same subject in consecutive slots
+            # This is a soft constraint - will be bypassed if no alternatives
+            pass  # We'll handle this in the selection logic
     
     eligible = [t for t in teachers if any(s["code"] == code for s in t.get("subjects", []))]
+    
+    # âœ… NEW: Filter by daily load limit
+    if teacher_limits:
+        eligible = [t for t in eligible if can_teacher_take_slot(t["name"], day, teacher_limits)]
+    
+    if not eligible:
+        return False
+    
+    # âœ… NEW: Prefer teachers with lower daily load (load balancing)
+    if teacher_limits:
+        eligible.sort(key=lambda t: teacher_limits[t["name"]]["daily_count"][day])
+    
     available_t = None
     
     for t in eligible:
@@ -522,6 +555,7 @@ def allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, teachers, 
     if not available_t:
         return False
     
+    # Room allocation logic (unchanged)
     available_r = None
     
     if stype == "Lab":
@@ -546,6 +580,7 @@ def allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, teachers, 
     if not available_r:
         return False
     
+    # Allocation
     entry = {
         "subject": code,
         "teacher": available_t,
@@ -574,6 +609,10 @@ def allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, teachers, 
         "year": yname,
         "division": div
     })
+    
+    # âœ… NEW: Increment teacher's daily count
+    if teacher_limits:
+        increment_teacher_daily_count(available_t, day, teacher_limits)
     
     return True
 
@@ -611,6 +650,31 @@ def initialize_complete_structure(years, teachers, rooms, year_time_slots):
                 room_tt[r["name"]][day][slot["slot_key"]] = []
     
     return class_tt, teacher_tt, room_tt
+
+def initialize_teacher_daily_limits(teachers):
+    """Initialize teacher daily load tracking with configurable limits."""
+    teacher_limits = {}
+    for t in teachers:
+        # Default max hours per day (can be customized per teacher)
+        max_daily = t.get("maxHoursPerDay", 4)  # Default: 4 hours/day
+        teacher_limits[t["name"]] = {
+            "max_per_day": max_daily,
+            "daily_count": {day: 0 for day in DAY_NAMES}
+        }
+    return teacher_limits
+
+def can_teacher_take_slot(teacher_name, day, teacher_limits):
+    """Check if teacher can take another slot today."""
+    if teacher_name not in teacher_limits:
+        return True
+    limit_data = teacher_limits[teacher_name]
+    return limit_data["daily_count"][day] < limit_data["max_per_day"]
+
+def increment_teacher_daily_count(teacher_name, day, teacher_limits):
+    """Increment teacher's daily hour count."""
+    if teacher_name in teacher_limits:
+        teacher_limits[teacher_name]["daily_count"][day] += 1
+
 
 def solver_greedy_distribute(payload):
     years = payload.get("years", {})
@@ -698,9 +762,12 @@ def solver_greedy_distribute(payload):
         years, teachers, rooms, year_time_slots
     )
     
-    # PHASE 1: THEORY LECTURES WITH ALTERNATION FIX
+    # PHASE 1: THEORY LECTURES WITH PROPER ALTERNATION + LOAD BALANCING
     print("=== PHASE 1: ALLOCATING THEORY LECTURES (BALANCED + ALTERNATING) ===")
-    
+
+    # âœ… NEW: Initialize teacher daily limits
+    teacher_limits = initialize_teacher_daily_limits(teachers)
+
     theory_distribution = {}
     for req in theory_pool:
         class_key = f"{req['year']}_Div{req['div']}"
@@ -711,7 +778,7 @@ def solver_greedy_distribute(payload):
             }
         theory_distribution[class_key]["total_lectures"] += req["remaining"]
         theory_distribution[class_key]["subjects"].append(req)
-    
+
     for class_key, dist_data in theory_distribution.items():
         yname = class_key.split("_")[0]
         ydata = years[yname]
@@ -722,10 +789,16 @@ def solver_greedy_distribute(payload):
         dist_data["daily_count"] = {day: 0 for day in DAY_NAMES}
         
         print(f"{class_key}: {total} lectures ÷ {working_days} days = {dist_data['per_day_target']} lectures/day target")
-    
+
+    # âœ… ENHANCED: Day-by-day allocation with subject alternation
     for day in DAY_NAMES:
+        # Reset daily counters
         for req in theory_pool:
             req["count_today"] = 0
+        
+        # Reset teacher daily counts for new day
+        for teacher_name in teacher_limits:
+            teacher_limits[teacher_name]["daily_count"][day] = 0
         
         for yname, slots in year_time_slots.items():
             ydata = years[yname]
@@ -746,9 +819,10 @@ def solver_greedy_distribute(payload):
                 daily_count = dist_data["daily_count"][day]
                 
                 class_lectures = [r for r in theory_pool 
-                                 if r["year"] == yname and r["div"] == div and r["remaining"] > 0]
+                                if r["year"] == yname and r["div"] == div and r["remaining"] > 0]
                 
-                random.shuffle(class_lectures)
+                # âœ… NEW: Track subjects already scheduled today for alternation
+                subjects_today = set()
                 
                 for slot_idx, slot_info in enumerate(slots):
                     if slot_info.get("is_lunch"):
@@ -757,36 +831,51 @@ def solver_greedy_distribute(payload):
                     if daily_count >= target:
                         break
                     
-                    # 🆕 GET PREVIOUS SLOT SUBJECT FOR ALTERNATION CHECK
+                    # Get previous slot subject for alternation
                     prev_subject = get_previous_slot_subject(class_tt, yname, div, day, slot_idx, slots)
                     
-                    for req in class_lectures:
-                        if req["remaining"] <= 0 or req["count_today"] >= req["max_per_day"]:
+                    # âœ… NEW: Build subject priority list
+                    # Priority 1: Subjects NOT yet scheduled today
+                    # Priority 2: Subjects different from previous slot
+                    # Priority 3: Any remaining subject
+                    
+                    unscheduled_today = [r for r in class_lectures 
+                                        if r["remaining"] > 0 
+                                        and r["count_today"] < r["max_per_day"]
+                                        and r["code"] not in subjects_today]
+                    
+                    different_from_prev = [r for r in class_lectures 
+                                        if r["remaining"] > 0 
+                                        and r["count_today"] < r["max_per_day"]
+                                        and r["code"] != prev_subject]
+                    
+                    any_available = [r for r in class_lectures 
+                                    if r["remaining"] > 0 
+                                    and r["count_today"] < r["max_per_day"]]
+                    
+                    # Try in order of priority
+                    for candidate_pool in [unscheduled_today, different_from_prev, any_available]:
+                        if not candidate_pool:
                             continue
                         
-                        # 🆕 THEORY ALTERNATION: Skip if same as previous slot
-                        if prev_subject is not None and req["code"] == prev_subject:
-                            continue  # Try different subject
+                        # âœ… NEW: Sort by remaining hours (descending) for balanced distribution
+                        candidate_pool.sort(key=lambda x: x["remaining"], reverse=True)
                         
-                        # Rest of allocation logic remains the same
-                        if allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, 
-                                       teachers, rooms, saved_timetables):
-                            req["remaining"] -= 1
-                            req["count_today"] += 1
-                            daily_count += 1
-                            dist_data["daily_count"][day] = daily_count
-                            
-                            print(f"✅ Allocated LECTURE: {req['code']} for {yname} Div {div} on {day} {slot_info['slot_key']}")
-                            break 
+                        allocated = False
+                        for req in candidate_pool:
+                            if allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, 
+                                        teachers, rooms, saved_timetables, teacher_limits, prev_subject):
+                                req["remaining"] -= 1
+                                req["count_today"] += 1
+                                daily_count += 1
+                                dist_data["daily_count"][day] = daily_count
+                                subjects_today.add(req["code"])  # Track for alternation
+                                
+                                print(f"âœ… Allocated LECTURE: {req['code']} for {yname} Div {div} on {day} {slot_info['slot_key']}")
+                                allocated = True
+                                break
                         
-                        if allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, 
-                                       teachers, rooms, saved_timetables):
-                            req["remaining"] -= 1
-                            req["count_today"] += 1
-                            daily_count += 1
-                            dist_data["daily_count"][day] = daily_count
-                            
-                            print(f"✅ Allocated LECTURE: {req['code']} for {yname} Div {div} on {day} {slot_info['slot_key']}")
+                        if allocated:
                             break
     
     # CRITICAL FIX: Phase 2 Multi-Hour Labs - Lines 550-650 of solver.py
@@ -798,6 +887,9 @@ def solver_greedy_distribute(payload):
     failed_lab_attempts = {}
 
     for day in DAY_NAMES:
+    # Reset teacher daily counts for labs
+        for teacher_name in teacher_limits:
+            teacher_limits[teacher_name]["daily_count"][day] = 0
         for req in lab_pool:
             if req["remaining"] <= 0:
                 continue
@@ -825,7 +917,7 @@ def solver_greedy_distribute(payload):
                 success, conflict_info = allocate_lab_continuous(
                     req, day, start_idx, class_tt, teacher_tt, room_tt,
                     teachers, rooms, year_time_slots, saved_timetables,
-                    lab_conflicts
+                    lab_conflicts, teacher_limits  # âœ… PASS teacher_limits
                 )
                 
                 if success:
@@ -863,7 +955,8 @@ def solver_greedy_distribute(payload):
     for day in DAY_NAMES:
         for req in practical_pool:
             req["count_today"] = 0
-        
+        for teacher_name in teacher_limits:
+            teacher_limits[teacher_name]["daily_count"][day] = 0
         for yname, slots in year_time_slots.items():
             ydata = years[yname]
             
@@ -881,7 +974,7 @@ def solver_greedy_distribute(payload):
                         continue
                     
                     if allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, 
-                                teachers, rooms, saved_timetables):
+                                teachers, rooms, saved_timetables, teacher_limits):  # âœ… PASS teacher_limits
                         req["remaining"] -= 1
                         req["count_today"] += 1
                         print(f"✅ Allocated practical: {req['code']} Batch {req.get('batch')} on {day} {slot_info['slot_key']}")
