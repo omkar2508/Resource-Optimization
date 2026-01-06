@@ -87,7 +87,7 @@ export default function TimetableGenerator() {
             </button>
           </div>
 
-          {/* Divider */}
+          {/* Divider 
           <div className="flex items-center gap-4 mb-6">
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-400/50 to-transparent"></div>
             <span className="text-gray-600 font-semibold px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md border border-gray-200/50">
@@ -96,7 +96,7 @@ export default function TimetableGenerator() {
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-400/50 to-transparent"></div>
           </div>
 
-          {/* IMPORT JSON BOX */}
+          {/* IMPORT JSON BOX 
           <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center shadow-lg">
@@ -154,7 +154,7 @@ export default function TimetableGenerator() {
                 </div>
               </div>
             )}
-          </div>
+          </div> */}
         </div>
       ) : (
         <div className="w-full max-w-6xl relative z-10">
