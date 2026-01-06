@@ -374,8 +374,8 @@ export default function TeacherForm({
                 <th className="border p-2 text-left">Teacher Name</th>
                 <th className="border p-2 text-left">Subjects</th>
                 <th className="border p-2 text-left">Years</th>
-                <th className="border p-2 text-center">Actions</th>
                 <th className="border p-2 text-left">Max Hrs/Day</th>
+                <th className="border p-2 text-center">Actions</th>
               </tr>
             </thead>
 
@@ -398,6 +398,8 @@ export default function TeacherForm({
                       {t.years.join(", ")}
                     </td>
 
+                    <td className="border p-2">{t.maxHoursPerDay || 4}</td>
+                    
                     <td className="border p-2 text-center space-x-2">
                       <button
                         onClick={() => editTeacher(t)}
@@ -412,7 +414,7 @@ export default function TeacherForm({
                         Delete
                       </button>
                     </td>
-                    <td className="border p-2">{t.maxHoursPerDay || 4}</td>
+                    
                   </tr>
                 ))}
             </tbody>
