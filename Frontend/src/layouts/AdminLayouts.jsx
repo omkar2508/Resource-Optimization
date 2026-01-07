@@ -86,11 +86,11 @@ export default function AdminLayout() {
           className="flex items-center justify-center gap-2 mx-2 mb-8 py-2 rounded-xl bg-blue-600 
                       text-white font-semibold shadow-md hover:bg-blue-700 shadow-lg transition"
         >
-          + Generate New Timetable
+          Generate Timetable
         </NavLink>
 
         {/* View Section */}
-        <p className="px-3 text-[13px] font-semibold text-gray-400 uppercase mb-3 tracking-widest">
+        <p className="px-3 text-[15px] font-semibold text-gray-400 uppercase mb-3 tracking-widest">
           View
         </p>
         {viewLinks.map((item) => (
@@ -102,7 +102,7 @@ export default function AdminLayout() {
                 `}
               >
                 <img src={item.icon} alt={item.name} className="w-5 h-5" />
-                <span className="text-sm font-medium">{item.name}</span>
+                <span className="text-base font-medium">{item.name}</span>
                 {isActive && (
                   <span className="ml-auto w-2 h-2 rounded-full bg-blue-500"></span>
                 )}
@@ -114,7 +114,7 @@ export default function AdminLayout() {
         <div className="my-4 border-t border-gray-100" />
 
         {/* Add / Manage Section */}
-        <p className="px-3 text-[13px] font-semibold text-gray-400 uppercase mt-6 mb-2 tracking-wide">
+        <p className="px-3 text-[15px] font-semibold text-gray-400 uppercase mt-6 mb-2 tracking-wide">
           Manage Resources
         </p>
         {manageLinks.map((item) => (
@@ -126,7 +126,7 @@ export default function AdminLayout() {
                 `}
               >
                 <img src={item.icon} alt={item.name} className="w-5 h-5" />
-                <span className="text-sm font-medium">{item.name}</span>
+                <span className="text-base font-medium">{item.name}</span>
                 {isActive && (
                   <span className="ml-auto w-2 h-2 rounded-full bg-blue-500"></span>
                 )}
