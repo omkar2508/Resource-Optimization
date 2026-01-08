@@ -27,34 +27,34 @@ function calculatePeriodsPerDay(timeConfig) {
   }
 }
 
-export default function Wizard({ selectedYears, importedData }) {
+export default function Wizard({ selectedYears, selectedSemesters, importedData }) {
   const [step, setStep] = useState(1);
   const [result, setResult] = useState(null);
   const [rooms, setRooms] = useState([]);
 
-  // Initialize year data with time configuration
+  // Initialize year data with time configuration and semester info
   const initialYearData = useMemo(() => {
     const obj = {};
     selectedYears.forEach((y) => {
       obj[y] = {
         divisions: 1,
-        periodsPerDay: 6, // Will be auto-calculated
+        periodsPerDay: 6,
         daysPerWeek: 5,
         lunchBreak: 4,
         holidays: ["Sat", "Sun"],
         subjects: [],
-        // NEW: Time configuration with sensible defaults
+        semester: selectedSemesters[y], // Store semester info
         timeConfig: {
           startTime: "09:00",
           endTime: "17:00",
-          periodDuration: 60, // 60 minutes per period
+          periodDuration: 60,
           lunchStart: "13:00",
-          lunchDuration: 45 // 45 minute lunch break
+          lunchDuration: 45
         }
       };
     });
     return obj;
-  }, [selectedYears]);
+  }, [selectedYears, selectedSemesters]);
 
   const [yearData, setYearData] = useState(initialYearData);
   const [teachers, setTeachers] = useState([]);
@@ -64,12 +64,10 @@ export default function Wizard({ selectedYears, importedData }) {
     if (importedData) {
       console.log("Processing imported data:", importedData);
       
-      // Process years
       if (importedData.years) {
         const importedYears = { ...importedData.years };
         
         Object.keys(importedYears).forEach((year) => {
-          // Add time config if missing
           if (!importedYears[year].timeConfig) {
             importedYears[year].timeConfig = {
               startTime: "09:00",
@@ -80,29 +78,30 @@ export default function Wizard({ selectedYears, importedData }) {
             };
           }
           
-          // Auto-calculate periodsPerDay from time config
           importedYears[year].periodsPerDay = calculatePeriodsPerDay(importedYears[year].timeConfig);
           
-          // Ensure holidays array exists
           if (!importedYears[year].holidays) {
             importedYears[year].holidays = ["Sat", "Sun"];
+          }
+
+          // Ensure semester is set
+          if (!importedYears[year].semester && selectedSemesters[year]) {
+            importedYears[year].semester = selectedSemesters[year];
           }
         });
         
         setYearData(importedYears);
       }
       
-      // Process teachers
       if (importedData.teachers && Array.isArray(importedData.teachers)) {
         setTeachers(importedData.teachers);
       }
       
-      // Process rooms
       if (importedData.rooms && Array.isArray(importedData.rooms)) {
         setRooms(importedData.rooms);
       }
     }
-  }, [importedData]);
+  }, [importedData, selectedSemesters]);
 
   // Auto-update periodsPerDay when time configuration changes
   useEffect(() => {
@@ -122,11 +121,11 @@ export default function Wizard({ selectedYears, importedData }) {
       
       return changed ? updated : prev;
     });
-  }, [yearData]); // Note: This will cause re-renders, but only updates when periods actually change
+  }, [yearData]);
 
   const handleGenerate = async () => {
     try {
-      // Validate time configuration before generating
+      // Validate time configuration
       const validationErrors = [];
       
       Object.keys(yearData).forEach((year) => {
@@ -138,7 +137,6 @@ export default function Wizard({ selectedYears, importedData }) {
           if (!timeConfig.endTime) validationErrors.push(`${year}: Missing end time`);
           if (!timeConfig.periodDuration) validationErrors.push(`${year}: Missing period duration`);
           
-          // Validate that end time is after start time
           if (timeConfig.startTime && timeConfig.endTime) {
             const start = new Date(`2000-01-01T${timeConfig.startTime}`);
             const end = new Date(`2000-01-01T${timeConfig.endTime}`);
@@ -150,7 +148,7 @@ export default function Wizard({ selectedYears, importedData }) {
         
         // Validate subjects exist
         if (!yearData[year].subjects || yearData[year].subjects.length === 0) {
-          validationErrors.push(`${year}: No subjects defined`);
+          validationErrors.push(`${year}: No subjects loaded. Please add subjects for ${year} - Semester ${yearData[year].semester} first.`);
         }
       });
       
@@ -159,13 +157,11 @@ export default function Wizard({ selectedYears, importedData }) {
         return;
       }
       
-      // Validate teachers
       if (!teachers || teachers.length === 0) {
         alert("⚠️ No teachers defined. Please add at least one teacher.");
         return;
       }
       
-      // Validate rooms
       if (!rooms || rooms.length === 0) {
         alert("⚠️ No rooms defined. Please add at least one room.");
         return;
@@ -250,12 +246,12 @@ export default function Wizard({ selectedYears, importedData }) {
     { number: 4, title: "Timetable Result", icon: "📅", color: "cyan" },
   ];
 
-  // Function to export current configuration as JSON
   const handleExportConfig = () => {
     const config = {
       years: yearData,
       teachers: teachers,
       rooms: rooms,
+      semesters: selectedSemesters,
       exportedAt: new Date().toISOString()
     };
     
@@ -270,7 +266,6 @@ export default function Wizard({ selectedYears, importedData }) {
 
   return (
     <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 w-full max-w-6xl mx-auto overflow-hidden">
-      {/* Header with Progress Bar */}
       <div className="bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 p-8">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -282,7 +277,6 @@ export default function Wizard({ selectedYears, importedData }) {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Export Configuration Button */}
             {step < 4 && (
               <button
                 onClick={handleExportConfig}
@@ -299,9 +293,7 @@ export default function Wizard({ selectedYears, importedData }) {
           </div>
         </div>
 
-        {/* Progress Steps */}
         <div className="flex items-center justify-between relative">
-          {/* Progress Line */}
           <div className="absolute top-6 left-0 right-0 h-1 bg-white/20">
             <div
               className="h-full bg-white transition-all duration-500 ease-out"
@@ -309,7 +301,6 @@ export default function Wizard({ selectedYears, importedData }) {
             />
           </div>
 
-          {/* Step Circles */}
           {stepTitles.map((s) => (
             <div
               key={s.number}
@@ -336,12 +327,12 @@ export default function Wizard({ selectedYears, importedData }) {
         </div>
       </div>
 
-      {/* Content Area */}
       <div className="p-8">
         {step === 1 && (
           <div className="animate-fadeIn">
             <YearPanel
               selectedYears={selectedYears}
+              selectedSemesters={selectedSemesters}
               yearData={yearData}
               setYearData={setYearData}
             />
@@ -382,7 +373,6 @@ export default function Wizard({ selectedYears, importedData }) {
           </div>
         )}
 
-        {/* Navigation Buttons */}
         {step < 3 && (
           <div className="mt-8 flex justify-between items-center pt-6 border-t border-gray-200">
             {step > 1 ? (

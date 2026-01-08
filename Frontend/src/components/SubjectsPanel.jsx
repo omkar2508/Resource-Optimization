@@ -1,55 +1,52 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import { useAppContext } from "../context/AppContext";
+
+const SEM_MAP = {
+  "1st Year": [1, 2],
+  "2nd Year": [3, 4],
+  "3rd Year": [5, 6],
+  "4th Year": [7, 8]
+};
+
+const YEAR_TO_FE = {
+  "1st Year": "FE",
+  "2nd Year": "SE",
+  "3rd Year": "TE",
+  "4th Year": "BE"
+};
 
 export default function SubjectsPanel({ year, yearData, setYearData }) {
-  const [subject, setSubject] = useState({
-    code: "",
-    name: "",
-    type: "Theory",
-    hours: "",
-    batches: 1,
-    labDuration: 2, // NEW: Default lab duration in hours
-  });
+  const { axios } = useAppContext();
+  const [selectedSemester, setSelectedSemester] = useState(SEM_MAP[year][0]);
+  const [loading, setLoading] = useState(false);
 
-  function addSubject() {
-    if (!subject.code.trim() || !subject.name.trim()) {
-      toast.error("Subject code and name are required");
-      return;
-    }
+  // Fetch subjects from backend when year or semester changes
+  useEffect(() => {
+    const loadRelevantSubjects = async () => {
+      setLoading(true);
+      try {
+        const yearCode = YEAR_TO_FE[year];
+        const { data } = await axios.get(
+          `/api/subjects/filter?year=${yearCode}&semester=${selectedSemester}`
+        );
+        
+        if (data.success) {
+          setYearData((prev) => ({
+            ...prev,
+            [year]: { ...prev[year], subjects: data.subjects }
+          }));
+        }
+      } catch (error) {
+        console.error("Failed to load subjects:", error);
+        toast.error("Failed to load subjects");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Validate lab duration
-    if (subject.type === "Lab" && (!subject.labDuration || subject.labDuration < 1 || subject.labDuration > 3)) {
-      toast.error("Lab duration must be between 1 and 3 hours");
-      return;
-    }
-
-    const updated = [...yearData[year].subjects, subject];
-
-    setYearData((prev) => ({
-      ...prev,
-      [year]: { ...prev[year], subjects: updated },
-    }));
-
-    toast.success(`${subject.code} - ${subject.name} added successfully`);
-
-    setSubject({ 
-      code: "", 
-      name: "", 
-      type: "Theory", 
-      hours: "", 
-      batches: 1,
-      labDuration: 2
-    });
-  }
-
-  function removeSubject(index) {
-    const updated = yearData[year].subjects.filter((_, i) => i !== index);
-    setYearData((prev) => ({
-      ...prev,
-      [year]: { ...prev[year], subjects: updated },
-    }));
-    toast.success("Subject removed");
-  }
+    loadRelevantSubjects();
+  }, [year, selectedSemester, axios]);
 
   const getTypeColor = (type) => {
     switch (type) {
@@ -81,119 +78,69 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
     <div>
       <div className="flex items-center gap-2 mb-6">
         <span className="text-2xl">📚</span>
-        <h4 className="text-xl font-bold text-gray-800">Subjects</h4>
+        <h4 className="text-xl font-bold text-gray-800">Subjects for {year}</h4>
         <span className="ml-auto px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
-          {yearData[year].subjects.length} Added
+          {yearData[year].subjects.length} Loaded
         </span>
       </div>
 
+      {/* Semester Selection */}
       <div className="bg-gradient-to-br from-blue-50/50 to-cyan-50/50 backdrop-blur-sm p-6 rounded-xl border border-blue-200/50 mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-lg">➕</span>
-          <h5 className="font-semibold text-gray-700">Add New Subject</h5>
+          <span className="text-lg">📅</span>
+          <h5 className="font-semibold text-gray-700">Select Semester</h5>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <input
-            className="px-4 py-3 border-2 border-blue-200 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all placeholder-gray-400"
-            placeholder="Subject Code (e.g., CS101)"
-            value={subject.code}
-            onChange={(e) =>
-              setSubject({ ...subject, code: e.target.value.toUpperCase() })
-            }
-          />
-          <input
-            className="px-4 py-3 border-2 border-blue-200 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all placeholder-gray-400"
-            placeholder="Subject Name"
-            value={subject.name}
-            onChange={(e) => setSubject({ ...subject, name: e.target.value })}
-          />
-
-          <select
-            className="px-4 py-3 border-2 border-blue-200 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all font-semibold text-gray-700 cursor-pointer"
-            value={subject.type}
-            onChange={(e) => setSubject({ ...subject, type: e.target.value })}
-          >
-            <option value="Theory">📖 Theory</option>
-            <option value="Lab">🔬 Lab</option>
-            <option value="Tutorial">✏️ Tutorial</option>
-          </select>
-
-          <input
-            type="number"
-            min="1"
-            max="20"
-            className="px-4 py-3 border-2 border-blue-200 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all font-semibold text-gray-700"
-            placeholder="No of Hr/per week"
-            value={subject.hours}
-            onChange={(e) =>
-              setSubject({
-                ...subject,
-                hours: e.target.value === "" ? "" : Number(e.target.value),
-              })
-            }
-          />
-
-          {subject.type === "Lab" && (
-            <div className="md:col-span-2">
-              <label className="block text-sm font-semibold mb-2 text-blue-700">
-                🕐 Lab Duration (Continuous Hours)
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {[1, 2, 3].map((duration) => (
-                  <button
-                    key={duration}
-                    type="button"
-                    onClick={() => setSubject({ ...subject, labDuration: duration })}
-                    className={`px-4 py-3 rounded-lg font-semibold transition-all ${
-                      subject.labDuration === duration
-                        ? "bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow-lg"
-                        : "bg-white border-2 border-blue-200 text-blue-700 hover:border-blue-400"
-                    }`}
-                  >
-                    {duration} Hour{duration > 1 ? "s" : ""}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-gray-600 mt-2">
-                Lab will occupy {subject.labDuration} continuous time slot{subject.labDuration > 1 ? "s" : ""}
-              </p>
-            </div>
-          )}
-
-          {subject.type !== "Theory" && (
-            <input
-              type="number"
-              min="1"
-              max="10"
-              className="px-4 py-3 border-2 border-blue-200 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all font-semibold text-gray-700"
-              placeholder="No. of batches"
-              value={subject.batches}
-              onChange={(e) =>
-                setSubject({ ...subject, batches: Number(e.target.value) })
-              }
-            />
-          )}
+        <div className="grid grid-cols-2 gap-3">
+          {SEM_MAP[year].map((sem) => (
+            <button
+              key={sem}
+              type="button"
+              onClick={() => setSelectedSemester(sem)}
+              className={`px-4 py-3 rounded-lg font-semibold transition-all ${
+                selectedSemester === sem
+                  ? "bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow-lg"
+                  : "bg-white border-2 border-blue-200 text-blue-700 hover:border-blue-400"
+              }`}
+            >
+              Semester {sem}
+            </button>
+          ))}
         </div>
-
-        <button
-          onClick={addSubject}
-          className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
-        >
-          <span className="text-xl">+</span>
-          Add Subject
-        </button>
       </div>
 
-      {yearData[year].subjects.length > 0 ? (
+      {/* Info Box */}
+      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">💡</span>
+          <div>
+            <p className="font-semibold text-blue-900">How to Add Subjects</p>
+            <p className="text-sm text-blue-800 mt-1">
+              Go to <strong>Manage Resources → Add Subject</strong> in the sidebar to add subjects 
+              for {year} - Semester {selectedSemester}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="text-center py-8">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
+          <p className="mt-2 text-gray-600">Loading subjects...</p>
+        </div>
+      )}
+
+      {/* Subjects List */}
+      {!loading && yearData[year].subjects.length > 0 ? (
         <div className="space-y-3">
           <h5 className="font-semibold text-gray-700 flex items-center gap-2">
             <span>📋</span>
-            Added Subjects
+            Subjects for Semester {selectedSemester}
           </h5>
           {yearData[year].subjects.map((s, i) => (
             <div
-              key={i}
+              key={s._id || i}
               className="group bg-white/80 backdrop-blur-sm p-4 rounded-xl border border-gray-200/50 hover:border-gray-300 hover:shadow-lg transition-all duration-200"
             >
               <div className="flex items-center justify-between">
@@ -238,27 +185,24 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => removeSubject(i)}
-                  className="opacity-0 group-hover:opacity-100 px-3 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-all duration-200 flex items-center gap-1 text-sm"
-                  title="Remove Subject"
-                >
-                  <span>🗑️</span>
-                  Remove
-                </button>
+                <div className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-semibold">
+                  Sem {s.semester}
+                </div>
               </div>
             </div>
           ))}
         </div>
-      ) : (
+      ) : !loading ? (
         <div className="text-center py-8 bg-gray-50/50 rounded-xl border-2 border-dashed border-gray-300">
           <span className="text-4xl mb-2 block">📚</span>
-          <p className="text-gray-500 font-medium">No subjects added yet</p>
+          <p className="text-gray-500 font-medium">
+            No subjects found for Semester {selectedSemester}
+          </p>
           <p className="text-gray-400 text-sm mt-1">
-            Add your first subject using the form above
+            Add subjects from the "Manage Resources" section
           </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

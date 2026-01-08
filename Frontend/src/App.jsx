@@ -4,35 +4,35 @@ import { Routes, Route, Navigate } from "react-router-dom";
 // User Pages
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-
 import EmailVerify from "./pages/EmailVerify";
 import ResetPassword from "./pages/ResetPassword";
 
 // Admin Pages
 import AdminLogin from "./pages/AdminLogin";
 import TimetableGenerator from "./pages/TimetableGenerator";
+import SavedTimetable from "./pages/SavedTimetable";
+import TeacherTimetable from "./pages/TeacherTimetable";
+import StudentTimetable from "./pages/StudentTimetable";
+import EditTimetable from "./pages/EditTimetable";
+import AddTeacher from "./pages/AddTeacher";
+import AddRoom from "./pages/AddRoom";
+import AddSubject from "./pages/AddSubject";
+import IndividualTeacherTimetable from "./pages/IndividualTimetable";
+import ProfileSetup from "./pages/ProfileSetup";
 
 // Other
 import NotFound from "./pages/NotFound";
+
+// Components
+import AdminLayout from "./layouts/AdminLayouts";
+import VerifiedRoute from "./components/VerifiedRoute";
 
 // Context
 import { useAppContext } from "./context/AppContext";
 
 // Toast
 import { ToastContainer } from "react-toastify";
-import AdminLayout from "./layouts/AdminLayouts";
-import ProfileSetup from "./pages/ProfileSetup";
-import SavedTimetable from "./pages/SavedTimetable";
 import "react-toastify/dist/ReactToastify.css";
-import TeacherTimetable from "./pages/TeacherTimetable";
-import StudentTimetable from "./pages/StudentTimetable";
-import EditTimetable from "./pages/EditTimetable";
-import { Navbar } from "./components/Navbar";
-import ScrollToHash from "./components/ScrolltoHash";
-import AddTeacher from "./pages/AddTeacher";
-import IndividualTeacherTimetable from "./pages/IndividualTimetable";
-import AddRoom from "./pages/AddRoom";
-import VerifiedRoute from "./components/VerifiedRoute";
 
 export default function App() {
   const { isAdmin, isLoggedIn } = useAppContext();
@@ -48,10 +48,9 @@ export default function App() {
           path="/login"
           element={isLoggedIn ? <Navigate to="/" /> : <Login />}
         />
-
         <Route path="/email-verify" element={<EmailVerify />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        {/* <Route path="/profile-setup" element={<ProfileSetup />} /> */}
+
         {/* ADMIN ROUTES */}
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route
@@ -62,10 +61,12 @@ export default function App() {
           <Route path="saved" element={<SavedTimetable />} />
           <Route path="teachers" element={<TeacherTimetable />} />
           <Route path="add-teacher" element={<AddTeacher />} />
-          <Route path="add-room" element={<AddRoom />} /> {/* ADD THIS LINE */}
+          <Route path="add-room" element={<AddRoom />} />
+          <Route path="add-subject" element={<AddSubject />} />
           <Route path="edit-timetable" element={<EditTimetable />} />
         </Route>
 
+        {/* PROTECTED USER ROUTES */}
         <Route
           path="/teacher-timetable"
           element={

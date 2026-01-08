@@ -1,190 +1,268 @@
 import React, { useState } from "react";
-import YearSelector from "../components/YearSelector";
 import Wizard from "../components/Wizard";
+import { toast } from "react-toastify";
+import { useAppContext } from "../context/AppContext";
 
 export default function TimetableGenerator() {
+  const [view, setView] = useState("select");
   const [selectedYears, setSelectedYears] = useState([]);
-  const [startWizard, setStartWizard] = useState(false);
+  const [selectedSemesters, setSelectedSemesters] = useState({});
   const [importedData, setImportedData] = useState(null);
-  const [showImportBox, setShowImportBox] = useState(false);
-  const [jsonText, setJsonText] = useState("");
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
+  // Updated year format: 1st, 2nd, 3rd, 4th
+  const allYears = ["1st", "2nd", "3rd", "4th"];
+  
+  // Semester mapping based on year
+  const semesterMapping = {
+    "1st": [1, 2],
+    "2nd": [3, 4],
+    "3rd": [5, 6],
+    "4th": [7, 8],
+  };
+
+  function toggleYear(year) {
+    if (selectedYears.includes(year)) {
+      setSelectedYears(selectedYears.filter((y) => y !== year));
+      const newSemesters = { ...selectedSemesters };
+      delete newSemesters[year];
+      setSelectedSemesters(newSemesters);
+    } else {
+      setSelectedYears([...selectedYears, year]);
+      // Set default to first semester of that year
+      setSelectedSemesters({
+        ...selectedSemesters,
+        [year]: semesterMapping[year][0]
+      });
+    }
+  }
+
+  function updateSemester(year, semester) {
+    setSelectedSemesters({
+      ...selectedSemesters,
+      [year]: semester
+    });
+  }
+
+  function handleContinue() {
+    if (selectedYears.length === 0) {
+      toast.error("Please select at least one year");
+      return;
+    }
+    setView("config");
+  }
+
+  function handleImport(event) {
+    const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = (e) => {
       try {
-        const parsed = JSON.parse(event.target.result);
-        setImportedData(parsed);
-        setStartWizard(true);
-        console.log("Imported JSON:", parsed);
-      } catch (err) {
-        alert("Invalid JSON file");
+        const data = JSON.parse(e.target.result);
+        setImportedData(data);
+        
+        // Extract years from imported data
+        if (data.years) {
+          const years = Object.keys(data.years);
+          setSelectedYears(years);
+          
+          // Extract semesters
+          const semesters = {};
+          years.forEach(year => {
+            if (data.years[year].semester) {
+              semesters[year] = data.years[year].semester;
+            }
+          });
+          setSelectedSemesters(semesters);
+        }
+        
+        setView("config");
+        toast.success("Configuration imported successfully!");
+      } catch (error) {
+        toast.error("Invalid configuration file");
+        console.error("Import error:", error);
       }
     };
-
     reader.readAsText(file);
+  }
+
+  // Helper function to get full year name
+  const getFullYearName = (year) => {
+    const yearNames = {
+      "1st": "First Year",
+      "2nd": "Second Year",
+      "3rd": "Third Year",
+      "4th": "Final Year"
+    };
+    return yearNames[year] || year;
   };
 
-  const handleImportText = () => {
-    try {
-      const parsed = JSON.parse(jsonText);
-      setImportedData(parsed);
-      setStartWizard(true);
-      console.log("Imported JSON (text):", parsed);
-    } catch (err) {
-      alert("Invalid JSON text");
-    }
-  };
+  if (view === "config") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-8">
+        <div className="max-w-7xl mx-auto">
+          <button
+            onClick={() => {
+              setView("select");
+              setImportedData(null);
+            }}
+            className="mb-6 px-6 py-3 bg-white/80 backdrop-blur-sm text-gray-700 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all border border-gray-200/50 flex items-center gap-2"
+          >
+            <span className="text-lg">←</span>
+            Back to Selection
+          </button>
+          <Wizard 
+            selectedYears={selectedYears} 
+            selectedSemesters={selectedSemesters}
+            importedData={importedData}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    // <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 flex flex-col items-center p-8 relative overflow-hidden">
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 flex flex-col items-center relative p-8 overflow-hidden">
-      {/* Animated Background */}
-      {/* <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-        <div className="absolute top-40 right-10 w-72 h-72 bg-cyan-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
-      </div> */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 flex items-center justify-center p-8">
+      <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 w-full max-w-4xl p-10">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent mb-3">
+            Generate Timetable
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Select academic years and semesters to begin configuration
+          </p>
+        </div>
 
-      {/* PAGE HEADER - REMOVED AI-POWERED BADGE */}
-      <div className="text-center mb-10 relative z-10">
-        <h1 className="text-5xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600">
-          Timetable Generator
-        </h1>
+        {/* Import Configuration Button */}
+        <div className="mb-8 p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
+                <span className="text-xl">📥</span>
+                Import Existing Configuration
+              </h3>
+              <p className="text-sm text-gray-600">
+                Load previously exported configuration file
+              </p>
+            </div>
+            <label className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold cursor-pointer transition-all shadow-md hover:shadow-lg">
+              Choose File
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleImport}
+                className="hidden"
+              />
+            </label>
+          </div>
+        </div>
 
-        <p className="text-gray-600 text-lg">
-          Create optimized schedules with automated resource allocation
-        </p>
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span className="text-2xl">📚</span>
+            Select Academic Years & Semesters
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Choose years and their corresponding semesters for timetable generation
+          </p>
+        </div>
+
+        <div className="space-y-4 mb-8">
+          {allYears.map((year) => (
+            <div
+              key={year}
+              className={`border-2 rounded-xl p-5 transition-all duration-200 ${
+                selectedYears.includes(year)
+                  ? "border-blue-400 bg-blue-50/50 shadow-md"
+                  : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => toggleYear(year)}
+                  className="flex-1 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
+                        selectedYears.includes(year)
+                          ? "bg-blue-600 border-blue-600"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      {selectedYears.includes(year) && (
+                        <span className="text-white text-sm">✓</span>
+                      )}
+                    </div>
+                    <div className="text-left">
+                      <span className="text-lg font-semibold text-gray-800">
+                        {year}
+                      </span>
+                      <span className="text-sm text-gray-500 ml-2">
+                        ({getFullYearName(year)})
+                      </span>
+                    </div>
+                  </div>
+                </button>
+
+                {selectedYears.includes(year) && (
+                  <div className="flex items-center gap-2 ml-4">
+                    <span className="text-sm font-medium text-gray-600">Semester:</span>
+                    <div className="flex gap-2">
+                      {semesterMapping[year].map((sem) => (
+                        <button
+                          key={sem}
+                          onClick={() => updateSemester(year, sem)}
+                          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                            selectedSemesters[year] === sem
+                              ? "bg-blue-600 text-white shadow-md"
+                              : "bg-white border-2 border-gray-300 text-gray-700 hover:border-blue-400"
+                          }`}
+                        >
+                          Sem {sem}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {selectedYears.length > 0 && (
+          <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+            <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+              <span>📋</span>
+              Selected Configuration
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {selectedYears.map((year) => (
+                <span
+                  key={year}
+                  className="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold"
+                >
+                  {year} - Sem {selectedSemesters[year]}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={handleContinue}
+          disabled={selectedYears.length === 0}
+          className={`w-full py-4 rounded-xl font-bold text-lg transition-all shadow-lg ${
+            selectedYears.length === 0
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white hover:shadow-xl"
+          }`}
+        >
+          {selectedYears.length === 0
+            ? "Select at least one year to continue"
+            : `Continue with ${selectedYears.length} year${selectedYears.length > 1 ? "s" : ""} →`}
+        </button>
       </div>
-
-      {!startWizard ? (
-        <div className="w-full max-w-2xl relative z-10">
-          {/* YEAR SELECTION CARD */}
-          <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl p-8 mb-6 border border-white/20">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white text-2xl">📚</span>
-              </div>
-              <h2 className="text-2xl font-semibold text-gray-800">
-                Select Academic Years
-              </h2>
-            </div>
-
-            <YearSelector
-              selectedYears={selectedYears}
-              setSelectedYears={setSelectedYears}
-            />
-
-            <button
-              onClick={() => selectedYears.length > 0 && setStartWizard(true)}
-              disabled={selectedYears.length === 0}
-              className="mt-6 w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-xl font-semibold shadow-lg hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Continue to Setup →
-            </button>
-          </div>
-
-          {/* Divider 
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-400/50 to-transparent"></div>
-            <span className="text-gray-600 font-semibold px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md border border-gray-200/50">
-              OR
-            </span>
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-400/50 to-transparent"></div>
-          </div>
-
-          {/* IMPORT JSON BOX 
-          <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white text-2xl">📥</span>
-              </div>
-              <h2 className="text-2xl font-semibold text-gray-800">
-                Import Configuration
-              </h2>
-            </div>
-
-            <p className="text-gray-600 mb-4">
-              Load existing timetable data from JSON file
-            </p>
-
-            <button
-              onClick={() => setShowImportBox(!showImportBox)}
-              className="mt-6 w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-xl font-semibold shadow-lg hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              📄 {showImportBox ? "Hide Import Options" : "Import JSON Data"}
-            </button>
-
-            {showImportBox && (
-              <div className="mt-6 space-y-6">
-                <div className="p-6 bg-gradient-to-br from-blue-50/80 to-cyan-50/80 rounded-xl border-2 border-dashed border-blue-300/60">
-                  <p className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    🔎 Upload JSON File
-                  </p>
-
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleFileUpload}
-                    className="w-full text-sm text-gray-600 file:mr-4 file:py-3 file:px-6 file:rounded-lg file:bg-gradient-to-r file:from-blue-500 file:to-cyan-400 file:text-white file:font-semibold"
-                  />
-                </div>
-
-                <div className="p-6 bg-gradient-to-br from-purple-50/80 to-pink-50/80 rounded-xl border-2 border-dashed border-purple-300/60">
-                  <p className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    ✏️ Paste JSON Text
-                  </p>
-
-                  <textarea
-                    value={jsonText}
-                    onChange={(e) => setJsonText(e.target.value)}
-                    placeholder='{"years": {...}, "teachers": [...]}'
-                    className="w-full h-40 border-2 border-purple-200 p-4 rounded-lg bg-white/90 font-mono text-sm"
-                  />
-
-                  <button
-                    onClick={handleImportText}
-                    className="mt-4 w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold"
-                  >
-                    Load JSON Data
-                  </button>
-                </div>
-              </div>
-            )}
-          </div> */}
-        </div>
-      ) : (
-        <div className="w-full max-w-6xl relative z-10">
-          <Wizard selectedYears={selectedYears} importedData={importedData} />
-        </div>
-      )}
-
-      <style jsx>{`
-        @keyframes blob {
-          0%,
-          100% {
-            transform: translate(0, 0) scale(1);
-          }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-      `}</style>
     </div>
   );
 }

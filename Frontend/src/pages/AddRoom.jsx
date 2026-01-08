@@ -63,7 +63,7 @@ const AddRoom = () => {
                 handleDeleteRoom(id);
                 closeToast();
               }}
-              className="px-3 py-1 text-sm bg-red-600 text-white rounded"
+              className="px-3 py-1 text-xs rounded bg-red-600 hover:bg-red-700 text-white"
             >
               Delete
             </button>
@@ -185,7 +185,7 @@ const AddRoom = () => {
                     <td className="p-3">
                       <button
                         onClick={() => confirmDeleteRoom(r._id)}
-                        className="text-red-600 hover:underline"
+                        className="px-3 py-1 text-xs rounded bg-red-600 hover:bg-red-700 text-white"
                       >
                         Delete
                       </button>

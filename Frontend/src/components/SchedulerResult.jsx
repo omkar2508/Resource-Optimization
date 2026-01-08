@@ -3,6 +3,7 @@ import React from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { renderTimetableCell, downloadTimetableCSV } from "../utils/renderTimetableCell";
+import { toast } from "react-toastify";
 
 const ORDERED_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -66,7 +67,7 @@ export default function SchedulerResult({ result, onBack, onSave }) {
       const parts = String(outerKey).split(" ");
       const year = parts[0] || outerKey;
       const divMatch = parts.find((p) => /^\d+$/.test(p));
-      const division = divMatch || "1";
+      const division = divMatch || "A";
 
       payload = {
         timetableType: "class",
@@ -79,27 +80,38 @@ export default function SchedulerResult({ result, onBack, onSave }) {
     try {
       const res = await axios.post("http://localhost:5000/api/timetable/save", payload);
       if (res?.data?.success) {
-        alert("Saved successfully: " + (res.data.message || ""));
+        toast.success("Saved successfully: " + (res.data.message || ""));
         return res.data;
       } else {
-        alert("Save failed: " + JSON.stringify(res.data || "no response"));
+        toast.error(
+          "Save failed. Please try again or check console for details.",
+          { autoClose: 5000 }
+        );
         return res.data;
       }
     } catch (err) {
       console.error("Save error", err);
-      alert("Error saving timetable. See console.");
+      toast.error("Error saving timetable. See console.");
       throw err;
     }
   };
 
   const handleSave = (outerKey, table, isTeacher = false) => {
     if (allConflicts.length > 0) {
-      alert("❌ Cannot save timetable with conflicts!\n\nPlease resolve all teacher and room conflicts before saving.");
+      toast.error(
+      "Cannot save timetable with conflicts. Please resolve all teacher and room conflicts before saving.",
+      {
+        duration: 5000,
+      }
+    );
       return;
     }
 
     if (criticalIssues.length > 0) {
-      alert("❌ Cannot save timetable with critical issues!\n\n" + criticalIssues.join("\n"));
+      toast.error(
+      `Cannot save timetable due to critical issues:\n${criticalIssues.join(", ")}`,
+      { duration: 6000 }
+    );
       return;
     }
 
@@ -108,9 +120,11 @@ export default function SchedulerResult({ result, onBack, onSave }) {
         const maybePromise = onSave(outerKey, table, isTeacher);
         if (maybePromise && typeof maybePromise.then === "function") {
           maybePromise.catch((e) => console.error("onSave error", e));
+          toast.error("Failed to save timetable");
         }
       } catch (e) {
         console.error("onSave threw", e);
+        toast.error("Failed to save timetable");
       }
     } else {
       defaultSave(outerKey, table, isTeacher).catch(() => {});
@@ -340,7 +354,7 @@ export default function SchedulerResult({ result, onBack, onSave }) {
           </div>
         )}
 
-        📋 TEACHER CONFLICT REPORT
+        {/* 📋 TEACHER CONFLICT REPORT */}
         {conflicts.length > 0 && (
           <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-6 shadow-lg">
             <h2 className="text-2xl font-bold text-red-800 flex items-center gap-3 mb-4">
@@ -614,9 +628,11 @@ export default function SchedulerResult({ result, onBack, onSave }) {
             <button
               onClick={() => {
                 if (!canSave) {
-                  alert("❌ Cannot save timetables!\n\n" + 
-                    (allConflicts.length > 0 ? "• Resolve all conflicts (teachers and rooms)\n" : "") +
-                    (criticalIssues.length > 0 ? "• Fix critical issues\n" : ""));
+                  toast.error(`Cannot save timetables. ${allConflicts.length > 0 ? "Resolve all teacher & room conflicts. " : ""}${
+                      criticalIssues.length > 0 ? "Fix all critical issues first." : ""
+                    }`,
+                    { autoClose: 6000 }
+                  );
                   return;
                 }
                 Object.keys(classTT).forEach(year => {

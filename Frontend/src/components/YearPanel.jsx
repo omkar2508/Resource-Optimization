@@ -1,9 +1,55 @@
-import React from "react";
-import SubjectsPanel from "./SubjectsPanel";
+import React, { useEffect, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAppContext } from "../context/AppContext";
+import { toast } from "react-toastify";
+import { flattenSubjects } from "../utils/subjectTransformer";
 
-export default function YearPanel({ selectedYears, yearData, setYearData }) {
+
+export default function YearPanel({ selectedYears, selectedSemesters, yearData, setYearData }) {
+  const { axios } = useAppContext();
   const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const [loadingSubjects, setLoadingSubjects] = useState({});
+
+  // Load subjects for each selected year and semester
+  useEffect(() => {
+    const loadAllSubjects = async () => {
+      for (const year of selectedYears) {
+        const semester = selectedSemesters[year];
+        if (semester) {
+          await loadSubjectsForYearSem(year, semester);
+        }
+      }
+    };
+    loadAllSubjects();
+  }, [selectedYears, selectedSemesters]);
+
+ const loadSubjectsForYearSem = async (year, semester) => {
+  setLoadingSubjects(prev => ({ ...prev, [year]: true }));
+  try {
+    const { data } = await axios.get(`/api/subjects/filter?year=${year}&semester=${semester}`);
+    if (data.success) {
+      // ✅ Transform component-based subjects to flat structure for timetable generation
+      const flattenedSubjects = flattenSubjects(data.subjects);
+      
+      setYearData(prev => ({
+        ...prev,
+        [year]: {
+          ...prev[year],
+          subjects: flattenedSubjects, // Use flattened structure
+          rawSubjects: data.subjects,  // Keep original for display
+          semester: semester
+        }
+      }));
+      toast.success(`Loaded ${data.subjects.length} subjects (${flattenedSubjects.length} components) for ${year} - Sem ${semester}`);
+    }
+  } catch (error) {
+    console.error("Error loading subjects:", error);
+    toast.error(`Failed to load subjects for ${year}`);
+  } finally {
+    setLoadingSubjects(prev => ({ ...prev, [year]: false }));
+  }
+};
+
 
   function updateYear(y, key, value) {
     setYearData((prev) => ({
@@ -33,16 +79,49 @@ export default function YearPanel({ selectedYears, yearData, setYearData }) {
     updateYear(year, "holidays", newHolidays);
   };
 
+  const getTypeColor = (type) => {
+    switch (type) {
+      case "Theory":
+        return "from-blue-500 to-cyan-400";
+      case "Lab":
+        return "from-purple-500 to-pink-500";
+      case "Tutorial":
+        return "from-green-500 to-emerald-400";
+      default:
+        return "from-gray-500 to-gray-600";
+    }
+  };
+
+  const getTypeIcon = (type) => {
+    switch (type) {
+      case "Theory":
+        return "📖";
+      case "Lab":
+        return "🔬";
+      case "Tutorial":
+        return "✏️";
+      default:
+        return "📚";
+    }
+  };
+
   return (
     <div className="space-y-6">
       {selectedYears.map((year) => (
         <div key={year} className="bg-white border rounded-2xl p-8 shadow-sm">
-          <h3 className="text-2xl font-bold text-gray-800 mb-6">{year} Configuration</h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-bold text-gray-800">
+              {year} Configuration - Semester {selectedSemesters[year]}
+            </h3>
+            <span className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+              {yearData[year]?.subjects?.length || 0} Subjects Loaded
+            </span>
+          </div>
           
           {/* TIME CONFIGURATION SECTION */}
           <div className="mb-8 p-6 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border-2 border-blue-200">
             <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <span>🕐</span>
+              <span>🕒</span>
               Time Configuration
             </h4>
             
@@ -218,7 +297,106 @@ export default function YearPanel({ selectedYears, yearData, setYearData }) {
             </div>
           </div>
 
-          <SubjectsPanel year={year} yearData={yearData} setYearData={setYearData} />
+          {/* LOADED SUBJECTS DISPLAY */}
+          <div className="bg-gradient-to-br from-blue-50/50 to-cyan-50/50 backdrop-blur-sm p-6 rounded-xl border border-blue-200/50">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">📚</span>
+                <h4 className="text-xl font-bold text-gray-800">Subjects</h4>
+                <span className="ml-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                  {yearData[year]?.subjects?.length || 0} Loaded
+                </span>
+              </div>
+              <button
+                onClick={() => loadSubjectsForYearSem(year, selectedSemesters[year])}
+                disabled={loadingSubjects[year]}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {loadingSubjects[year] ? (
+                  <>
+                    <span className="animate-spin">⟳</span>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <span>🔄</span>
+                    Reload Subjects
+                  </>
+                )}
+              </button>
+            </div>
+
+            {loadingSubjects[year] ? (
+              <div className="text-center py-8">
+                <div className="inline-block h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="mt-3 text-gray-600">Loading subjects...</p>
+              </div>
+            ) : yearData[year]?.subjects?.length > 0 ? (
+              <div className="space-y-3">
+                <h5 className="font-semibold text-gray-700 flex items-center gap-2">
+                  <span>📋</span>
+                  Subjects for {year} - Semester {selectedSemesters[year]}
+                </h5>
+                {yearData[year].subjects.map((s, i) => (
+                  <div
+                    key={i}
+                    className="group bg-white/80 backdrop-blur-sm p-4 rounded-xl border border-gray-200/50 hover:border-gray-300 hover:shadow-lg transition-all duration-200"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 flex-1">
+                        <div
+                          className={`px-3 py-1 bg-gradient-to-r ${getTypeColor(
+                            s.type
+                          )} text-white rounded-lg font-semibold text-sm shadow-md flex items-center gap-1`}
+                        >
+                          <span>{getTypeIcon(s.type)}</span>
+                          {s.type}
+                        </div>
+
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-gray-800 text-lg">
+                              {s.code}
+                            </span>
+                            <span className="text-gray-400">—</span>
+                            <span className="text-gray-700 font-medium">
+                              {s.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
+                            <span className="flex items-center gap-1">
+                              <span>⏰</span>
+                              {s.hours} hrs/week
+                            </span>
+                            {s.type === "Lab" && s.labDuration && (
+                              <span className="flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-semibold">
+                                <span>🕒</span>
+                                {s.labDuration}h continuous
+                              </span>
+                            )}
+                            {s.type !== "Theory" && (
+                              <span className="flex items-center gap-1">
+                                <span>👥</span>
+                                {s.batches} batch{s.batches > 1 ? "es" : ""}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 bg-gray-50/50 rounded-xl border-2 border-dashed border-gray-300">
+                <span className="text-4xl mb-2 block">📚</span>
+                <p className="text-gray-500 font-medium">No subjects found</p>
+                <p className="text-gray-400 text-sm mt-1">
+                  Please add subjects for {year} - Semester {selectedSemesters[year]} in the "Add Subject" section
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       ))}
     </div>
