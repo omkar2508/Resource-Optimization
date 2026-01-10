@@ -1,13 +1,22 @@
 import { useEffect, useRef } from "react";
 
-const IDLE_TIME = 1 * 20 * 1000; // 5 minutes in milliseconds
+// 30 minutes in milliseconds (30 * 60 * 1000)
+const IDLE_TIME = 30 * 60 * 1000;
 
 export default function useIdleLogout(onLogout) {
   const timerRef = useRef(null);
+  const onLogoutRef = useRef(onLogout);
+
+  // Keep the latest onLogout callback
+  useEffect(() => {
+    onLogoutRef.current = onLogout;
+  }, [onLogout]);
 
   const resetTimer = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(onLogout, IDLE_TIME);
+    timerRef.current = setTimeout(() => {
+      onLogoutRef.current();
+    }, IDLE_TIME);
   };
 
   useEffect(() => {
@@ -17,10 +26,12 @@ export default function useIdleLogout(onLogout) {
       "keydown",
       "scroll",
       "touchstart",
+      "click",
+      "keypress",
     ];
 
     events.forEach(event =>
-      window.addEventListener(event, resetTimer)
+      window.addEventListener(event, resetTimer, { passive: true })
     );
 
     resetTimer(); // start timer

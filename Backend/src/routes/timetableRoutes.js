@@ -6,44 +6,73 @@ const router = express.Router();
 // SAVE OR UPDATE TIMETABLE
 router.post("/save", async (req, res) => {
   try {
-    const { year, division, timetableData } = req.body;
+    const { year, division, timetableData, department } = req.body;
 
+    // Validate required fields
     if (!year || !division) {
       return res
         .status(400)
-        .json({ success: false, message: "Year and division required" });
+        .json({ 
+          success: false, 
+          message: "Year and division are required" 
+        });
     }
 
+    if (!timetableData || typeof timetableData !== 'object' || Object.keys(timetableData).length === 0) {
+      return res
+        .status(400)
+        .json({ 
+          success: false, 
+          message: "Timetable data is required and must not be empty" 
+        });
+    }
+
+    // Use provided department or default to "Software Engineering"
+    const dept = department || "Software Engineering";
+
+    // Check if timetable already exists
     let existing = await timetableModel.findOne({
-      year,
-      division,
-      department: "Software Engineering", // Default match
+      year: String(year),
+      division: String(division),
+      department: dept,
     });
 
     if (existing) {
+      // Update existing timetable
       existing.timetableData = timetableData;
+      existing.updatedAt = new Date();
       await existing.save();
+      
+      console.log(`✅ Updated timetable: ${year} - Division ${division} - ${dept}`);
+      
       return res.json({
         success: true,
-        message: "Timetable updated successfully",
+        message: `Timetable updated successfully for ${year} - Division ${division}`,
         timetable: existing,
       });
     }
 
+    // Create new timetable
     const newTT = await timetableModel.create({
-      year,
-      division,
-      department: "Software Engineering",
+      year: String(year),
+      division: String(division),
+      department: dept,
       timetableData,
     });
 
+    console.log(`✅ Created new timetable: ${year} - Division ${division} - ${dept}`);
+
     return res.json({
       success: true,
-      message: "Timetable saved successfully",
+      message: `Timetable saved successfully for ${year} - Division ${division}`,
       timetable: newTT,
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+    console.error("❌ Error saving timetable:", err);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Failed to save timetable: " + err.message 
+    });
   }
 });
 

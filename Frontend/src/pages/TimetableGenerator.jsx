@@ -99,17 +99,18 @@ export default function TimetableGenerator() {
 
   if (view === "config") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-3 sm:p-4 md:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
           <button
             onClick={() => {
               setView("select");
               setImportedData(null);
             }}
-            className="mb-6 px-6 py-3 bg-white/80 backdrop-blur-sm text-gray-700 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all border border-gray-200/50 flex items-center gap-2"
+            className="mb-4 sm:mb-6 px-4 sm:px-6 py-2 sm:py-3 bg-white/80 backdrop-blur-sm text-gray-700 rounded-lg sm:rounded-xl font-semibold shadow-md hover:shadow-lg transition-all border border-gray-200/50 flex items-center gap-2 text-sm sm:text-base"
           >
-            <span className="text-lg">←</span>
-            Back to Selection
+            <span className="text-base sm:text-lg">←</span>
+            <span className="hidden sm:inline">Back to Selection</span>
+            <span className="sm:hidden">Back</span>
           </button>
           <Wizard 
             selectedYears={selectedYears} 
@@ -122,30 +123,30 @@ export default function TimetableGenerator() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 flex items-center justify-center p-8">
-      <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 w-full max-w-4xl p-10">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent mb-3">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 flex items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8">
+      <div className="bg-white/90 backdrop-blur-lg rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 w-full max-w-4xl p-4 sm:p-6 md:p-8 lg:p-10">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent mb-2 sm:mb-3">
             Generate Timetable
           </h1>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 text-sm sm:text-base md:text-lg">
             Select academic years and semesters to begin configuration
           </p>
         </div>
 
         {/* Import Configuration Button */}
-        <div className="mb-8 p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
-                <span className="text-xl">📥</span>
+        <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg sm:rounded-xl border-2 border-green-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2 text-sm sm:text-base">
+                <span className="text-lg sm:text-xl">📥</span>
                 Import Existing Configuration
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Load previously exported configuration file
               </p>
             </div>
-            <label className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold cursor-pointer transition-all shadow-md hover:shadow-lg">
+            <label className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg sm:rounded-xl font-semibold cursor-pointer transition-all shadow-md hover:shadow-lg text-sm sm:text-base whitespace-nowrap">
               Choose File
               <input
                 type="file"
@@ -157,48 +158,48 @@ export default function TimetableGenerator() {
           </div>
         </div>
 
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <span className="text-2xl">📚</span>
+        <div className="mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-2 sm:mb-4 flex items-center gap-2">
+            <span className="text-xl sm:text-2xl">📚</span>
             Select Academic Years & Semesters
           </h2>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
             Choose years and their corresponding semesters for timetable generation
           </p>
         </div>
 
-        <div className="space-y-4 mb-8">
+        <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
           {allYears.map((year) => (
             <div
               key={year}
-              className={`border-2 rounded-xl p-5 transition-all duration-200 ${
+              className={`border-2 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 transition-all duration-200 ${
                 selectedYears.includes(year)
                   ? "border-blue-400 bg-blue-50/50 shadow-md"
                   : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
               }`}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <button
                   onClick={() => toggleYear(year)}
-                  className="flex-1 flex items-center justify-between"
+                  className="flex-1 flex items-center justify-between w-full sm:w-auto"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <div
-                      className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
+                      className={`w-5 h-5 sm:w-6 sm:h-6 rounded-md border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
                         selectedYears.includes(year)
                           ? "bg-blue-600 border-blue-600"
                           : "border-gray-300"
                       }`}
                     >
                       {selectedYears.includes(year) && (
-                        <span className="text-white text-sm">✓</span>
+                        <span className="text-white text-xs sm:text-sm">✓</span>
                       )}
                     </div>
                     <div className="text-left">
-                      <span className="text-lg font-semibold text-gray-800">
+                      <span className="text-base sm:text-lg font-semibold text-gray-800">
                         {year}
                       </span>
-                      <span className="text-sm text-gray-500 ml-2">
+                      <span className="text-xs sm:text-sm text-gray-500 ml-1 sm:ml-2 hidden sm:inline">
                         ({getFullYearName(year)})
                       </span>
                     </div>
@@ -206,14 +207,17 @@ export default function TimetableGenerator() {
                 </button>
 
                 {selectedYears.includes(year) && (
-                  <div className="flex items-center gap-2 ml-4">
-                    <span className="text-sm font-medium text-gray-600">Semester:</span>
-                    <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2 w-full sm:w-auto">
+                    <span className="text-xs sm:text-sm font-medium text-gray-600 whitespace-nowrap">Semester:</span>
+                    <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                       {semesterMapping[year].map((sem) => (
                         <button
                           key={sem}
-                          onClick={() => updateSemester(year, sem)}
-                          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateSemester(year, sem);
+                          }}
+                          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all ${
                             selectedSemesters[year] === sem
                               ? "bg-blue-600 text-white shadow-md"
                               : "bg-white border-2 border-gray-300 text-gray-700 hover:border-blue-400"
@@ -231,8 +235,8 @@ export default function TimetableGenerator() {
         </div>
 
         {selectedYears.length > 0 && (
-          <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-            <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 rounded-lg sm:rounded-xl border border-blue-200">
+            <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2 text-sm sm:text-base">
               <span>📋</span>
               Selected Configuration
             </h3>
@@ -240,7 +244,7 @@ export default function TimetableGenerator() {
               {selectedYears.map((year) => (
                 <span
                   key={year}
-                  className="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold"
+                  className="px-2 sm:px-3 py-1 bg-blue-600 text-white rounded-full text-xs sm:text-sm font-semibold"
                 >
                   {year} - Sem {selectedSemesters[year]}
                 </span>
@@ -252,7 +256,7 @@ export default function TimetableGenerator() {
         <button
           onClick={handleContinue}
           disabled={selectedYears.length === 0}
-          className={`w-full py-4 rounded-xl font-bold text-lg transition-all shadow-lg ${
+          className={`w-full py-3 sm:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg transition-all shadow-lg ${
             selectedYears.length === 0
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white hover:shadow-xl"

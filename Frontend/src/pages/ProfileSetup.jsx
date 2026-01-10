@@ -66,14 +66,14 @@ export default function ProfileSetup() {
     <div className="min-h-screen bg-slate-50">
       <Navbar />
 
-      <div className="container mx-auto px-4 pt-32 pb-12 max-w-4xl">
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col md:flex-row border border-gray-100">
+      <div className="container mx-auto px-3 sm:px-4 pt-20 sm:pt-24 md:pt-32 pb-6 sm:pb-8 md:pb-12 max-w-4xl">
+        <div className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-xl overflow-hidden flex flex-col md:flex-row border border-gray-100">
           {/* LEFT SIDE */}
-          <div className="md:w-1/3 bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white flex flex-col items-center text-center">
-            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center text-3xl mb-4 border-2 border-white/30 backdrop-blur-md">
+          <div className="md:w-1/3 bg-gradient-to-br from-blue-600 to-indigo-700 p-6 sm:p-8 text-white flex flex-col items-center text-center">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/20 rounded-full flex items-center justify-center text-2xl sm:text-3xl mb-3 sm:mb-4 border-2 border-white/30 backdrop-blur-md">
               {userData?.name?.charAt(0) || "S"}
             </div>
-            <h2 className="text-2xl font-bold">
+            <h2 className="text-xl sm:text-2xl font-bold">
               {userData?.name || "Student"}
             </h2>
             <p className="text-blue-100 text-sm mt-2">{userData?.email}</p>
@@ -89,8 +89,8 @@ export default function ProfileSetup() {
           </div>
 
           {/* RIGHT SIDE */}
-          <div className="md:w-2/3 p-10">
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">
+          <div className="md:w-2/3 p-4 sm:p-6 md:p-8 lg:p-10">
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
               {isTeacher
                 ? "Complete Your Profile"
                 : "Complete Your Academic Profile"}

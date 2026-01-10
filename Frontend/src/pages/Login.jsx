@@ -9,10 +9,10 @@ import { Navbar } from "../components/Navbar";
    Department → Divisions
 ========================= */
 const departmentDivisions = {
-  "Software Engineering": ["1"], // only one div
-  "AI Engineering": ["1", "2", "3"],
-  "Computer Engineering": ["1", "2"],
-  "IT Engineering": ["1", "2"],
+  "Software Engineering": ["1"], // only one div - auto assigned
+  "AI Engineering": ["1", "2", "3"], // multiple divisions - user selects
+  "Computer Engineering": ["1", "2"], // multiple divisions - user selects
+  "IT Engineering": ["1", "2"], // multiple divisions - user selects
 };
 
 const Login = () => {
@@ -38,13 +38,16 @@ const Login = () => {
      Auto-select division
   ========================= */
   useEffect(() => {
-    if (!department) return;
+    if (!department) {
+      setDivision(""); // Reset division when no department selected
+      return;
+    }
 
     const divs = departmentDivisions[department] || [];
     if (divs.length === 1) {
-      setDivision(divs[0]); // auto assign
+      setDivision(divs[0]); // auto assign when only one division
     } else {
-      setDivision("");
+      setDivision(""); // reset to allow user selection when multiple divisions
     }
   }, [department]);
 
@@ -83,12 +86,12 @@ const Login = () => {
       <Navbar />
 
       {/* CENTER CARD */}
-      <div className="relative z-20 bg-slate-900 px-10 py-12 rounded-xl shadow-xl w-full max-w-md text-indigo-300">
-        <h2 className="text-3xl font-semibold text-white text-center mb-3">
+      <div className="relative z-20 bg-slate-900 px-4 sm:px-6 md:px-10 py-8 sm:py-10 md:py-12 rounded-lg sm:rounded-xl shadow-xl w-full max-w-md text-indigo-300">
+        <h2 className="text-2xl sm:text-3xl font-semibold text-white text-center mb-2 sm:mb-3">
           {state === "Sign Up" ? "Create Account" : "Login"}
         </h2>
 
-        <p className="text-center text-sm mb-6">
+        <p className="text-center text-xs sm:text-sm mb-4 sm:mb-6">
           {state === "Sign Up"
             ? "Create your account!"
             : "Login to your account!"}
@@ -97,12 +100,12 @@ const Login = () => {
         <form onSubmit={onSubmitHandler}>
           {/* NAME */}
           {state === "Sign Up" && (
-            <div className="mb-4 flex items-center gap-3 px-5 py-2.5 rounded-full bg-[#333A5C]">
-              <img src={assets.person_icon} alt="" />
+            <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-full bg-[#333A5C]">
+              <img src={assets.person_icon} alt="" className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
               <input
                 onChange={(e) => setName(e.target.value)}
                 value={name}
-                className="bg-transparent outline-none w-full text-white"
+                className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder:text-indigo-400"
                 type="text"
                 placeholder="Enter your name"
                 required
@@ -129,24 +132,35 @@ const Login = () => {
 
           {/* DIVISION */}
           {state === "Sign Up" && department && (
-            <select
-              value={division}
-              onChange={(e) => setDivision(e.target.value)}
-              required
-              disabled={departmentDivisions[department].length === 1}
-              className="mb-4 w-full px-5 py-2.5 rounded-full bg-[#333A5C] text-white"
-            >
-              <option value="">
-                {departmentDivisions[department].length === 1
-                  ? "Division Auto Assigned"
-                  : "Select Division"}
-              </option>
-              {departmentDivisions[department].map((div) => (
-                <option key={div} value={div} className="text-black">
-                  Division {div}
+            <div className="mb-4">
+              <select
+                value={division}
+                onChange={(e) => setDivision(e.target.value)}
+                required
+                className={`w-full px-5 py-2.5 rounded-full bg-[#333A5C] text-white ${
+                  departmentDivisions[department]?.length === 1 
+                    ? "opacity-75 cursor-not-allowed" 
+                    : "cursor-pointer hover:bg-[#3d4565] transition-colors"
+                }`}
+                disabled={departmentDivisions[department]?.length === 1}
+              >
+                <option value="" className="text-black bg-white">
+                  {departmentDivisions[department]?.length === 1
+                    ? `Division ${departmentDivisions[department][0]} (Auto Assigned)`
+                    : "Select Division"}
                 </option>
-              ))}
-            </select>
+                {departmentDivisions[department]?.map((div) => (
+                  <option key={div} value={div} className="text-black bg-white">
+                    Division {div}
+                  </option>
+                ))}
+              </select>
+              {departmentDivisions[department]?.length > 1 && (
+                <p className="text-xs text-indigo-400 mt-1 ml-2">
+                  {departmentDivisions[department].length} divisions available
+                </p>
+              )}
+            </div>
           )}
 
           {/* ADMISSION YEAR */}

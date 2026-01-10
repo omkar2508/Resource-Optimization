@@ -221,41 +221,41 @@ export default function AddSubject() {
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-            <span className="text-4xl">📚</span>
-            Subject Management
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-2 sm:gap-3 mb-2">
+            <span className="text-2xl sm:text-3xl md:text-4xl">📚</span>
+            <span>Subject Management</span>
           </h2>
-          <p className="text-gray-600 mt-2">
+          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">
             Add subjects with their Theory, Lab, and Tutorial components
           </p>
         </div>
 
         {/* Add/Edit Subject Form */}
-        <div className="bg-white rounded-2xl shadow-sm border p-8 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border p-4 sm:p-6 md:p-8 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2">
               <span>{editMode ? "✏️" : "➕"}</span>
               {editMode ? "Edit Subject" : "Add New Subject"}
             </h3>
             {editMode && (
               <button
                 onClick={resetForm}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all"
+                className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all text-sm sm:text-base font-semibold"
               >
                 Cancel Edit
               </button>
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 md:space-y-6">
             {/* Year and Semester */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                   Academic Year *
                 </label>
                 <select
@@ -268,7 +268,7 @@ export default function AddSubject() {
                     })
                   }
                   disabled={editMode}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                 >
                   {Object.keys(SEM_MAP).map((y) => (
                     <option key={y} value={y}>
@@ -279,7 +279,7 @@ export default function AddSubject() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                   Semester *
                 </label>
                 <select
@@ -288,7 +288,7 @@ export default function AddSubject() {
                     setFormData({ ...formData, semester: parseInt(e.target.value) })
                   }
                   disabled={editMode}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                 >
                   {SEM_MAP[formData.year].map((s) => (
                     <option key={s} value={s}>
@@ -300,9 +300,9 @@ export default function AddSubject() {
             </div>
 
             {/* Subject Code and Name */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                   Subject Code *
                 </label>
                 <input
@@ -313,13 +313,13 @@ export default function AddSubject() {
                     setFormData({ ...formData, code: e.target.value.toUpperCase() })
                   }
                   disabled={editMode}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                   Subject Name *
                 </label>
                 <input
@@ -327,24 +327,24 @@ export default function AddSubject() {
                   placeholder="e.g., Data Structures"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
             </div>
 
             {/* Theory Component */}
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg sm:rounded-xl p-4 sm:p-5 md:p-6">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <input
                     type="checkbox"
                     id="hasTheory"
                     checked={hasTheory}
                     onChange={(e) => setHasTheory(e.target.checked)}
-                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   />
-                  <label htmlFor="hasTheory" className="text-lg font-bold text-blue-900 flex items-center gap-2">
+                  <label htmlFor="hasTheory" className="text-base sm:text-lg font-bold text-blue-900 flex items-center gap-2 cursor-pointer">
                     <span>📖</span>
                     Theory Component
                   </label>
@@ -353,7 +353,7 @@ export default function AddSubject() {
 
               {hasTheory && (
                 <div>
-                  <label className="block text-sm font-semibold text-blue-900 mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-blue-900 mb-1.5 sm:mb-2">
                     Theory Hours per Week *
                   </label>
                   <input
@@ -362,7 +362,7 @@ export default function AddSubject() {
                     max="10"
                     value={theoryHours}
                     onChange={(e) => setTheoryHours(parseInt(e.target.value))}
-                    className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-blue-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                     required={hasTheory}
                   />
                 </div>
@@ -370,17 +370,17 @@ export default function AddSubject() {
             </div>
 
             {/* Lab/Tutorial Component */}
-            <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
+            <div className="bg-purple-50 border-2 border-purple-200 rounded-lg sm:rounded-xl p-4 sm:p-5 md:p-6">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <input
                     type="checkbox"
                     id="hasLabTutorial"
                     checked={hasLabTutorial}
                     onChange={(e) => setHasLabTutorial(e.target.checked)}
-                    className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                    className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500 cursor-pointer"
                   />
-                  <label htmlFor="hasLabTutorial" className="text-lg font-bold text-purple-900 flex items-center gap-2">
+                  <label htmlFor="hasLabTutorial" className="text-base sm:text-lg font-bold text-purple-900 flex items-center gap-2 cursor-pointer">
                     <span>🔬</span>
                     Lab / Tutorial Component
                   </label>
@@ -388,16 +388,16 @@ export default function AddSubject() {
               </div>
 
               {hasLabTutorial && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-purple-900 mb-2">
+                      <label className="block text-xs sm:text-sm font-semibold text-purple-900 mb-1.5 sm:mb-2">
                         Type *
                       </label>
                       <select
                         value={labTutorialType}
                         onChange={(e) => setLabTutorialType(e.target.value)}
-                        className="w-full px-4 py-3 border border-purple-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-purple-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
                       >
                         <option value="Lab">Lab</option>
                         <option value="Tutorial">Tutorial</option>
@@ -405,7 +405,7 @@ export default function AddSubject() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-purple-900 mb-2">
+                      <label className="block text-xs sm:text-sm font-semibold text-purple-900 mb-1.5 sm:mb-2">
                         Hours per Week *
                       </label>
                       <input
@@ -414,13 +414,13 @@ export default function AddSubject() {
                         max="10"
                         value={labTutorialHours}
                         onChange={(e) => setLabTutorialHours(parseInt(e.target.value))}
-                        className="w-full px-4 py-3 border border-purple-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-purple-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
                         required={hasLabTutorial}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-purple-900 mb-2">
+                      <label className="block text-xs sm:text-sm font-semibold text-purple-900 mb-1.5 sm:mb-2">
                         Number of Batches
                       </label>
                       <input
@@ -429,19 +429,19 @@ export default function AddSubject() {
                         max="10"
                         value={batches}
                         onChange={(e) => setBatches(parseInt(e.target.value))}
-                        className="w-full px-4 py-3 border border-purple-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-purple-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
                       />
                     </div>
 
                     {labTutorialType === "Lab" && (
                       <div>
-                        <label className="block text-sm font-semibold text-purple-900 mb-2">
+                        <label className="block text-xs sm:text-sm font-semibold text-purple-900 mb-1.5 sm:mb-2">
                           Continuous Duration (hours)
                         </label>
                         <select
                           value={labDuration}
                           onChange={(e) => setLabDuration(parseInt(e.target.value))}
-                          className="w-full px-4 py-3 border border-purple-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                          className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-purple-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
                         >
                           <option value={1}>1 Hour</option>
                           <option value={2}>2 Hours (Continuous)</option>
@@ -452,9 +452,9 @@ export default function AddSubject() {
                   </div>
 
                   {labTutorialType === "Lab" && (
-                    <p className="text-xs text-purple-700 flex items-center gap-2">
+                    <p className="text-xs sm:text-sm text-purple-700 flex items-start gap-2">
                       <span>💡</span>
-                      Lab sessions occupy {labDuration} continuous time slot{labDuration > 1 ? 's' : ''} without breaks
+                      <span>Lab sessions occupy {labDuration} continuous time slot{labDuration > 1 ? 's' : ''} without breaks</span>
                     </p>
                   )}
                 </div>
@@ -464,7 +464,7 @@ export default function AddSubject() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full md:w-auto px-8 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:scale-105"
+              className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg sm:rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:scale-105 text-sm sm:text-base"
             >
               {editMode ? "Update Subject" : "Add Subject"}
             </button>
@@ -472,60 +472,60 @@ export default function AddSubject() {
         </div>
 
         {/* Subject List */}
-        <div className="bg-white rounded-2xl shadow-sm border p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border p-4 sm:p-6 md:p-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2 flex-1 min-w-0">
               <span>📋</span>
-              Subjects for {formData.year} - Semester {formData.semester}
+              <span className="truncate">Subjects for {formData.year} - Semester {formData.semester}</span>
             </h3>
-            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap">
               {subjects.length} Subjects
             </span>
           </div>
 
           {loading ? (
-            <div className="text-center py-8">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
-              <p className="mt-2 text-gray-600">Loading subjects...</p>
+            <div className="text-center py-6 sm:py-8">
+              <div className="inline-block h-6 w-6 sm:h-8 sm:w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
+              <p className="mt-2 text-sm sm:text-base text-gray-600">Loading subjects...</p>
             </div>
           ) : subjects.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {subjects.map((subject) => (
                 <div
                   key={subject._id}
-                  className="p-5 border-2 rounded-xl bg-gray-50 hover:shadow-md transition-all"
+                  className="p-3 sm:p-4 md:p-5 border-2 rounded-lg sm:rounded-xl bg-gray-50 hover:shadow-md transition-all"
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="font-bold text-xl text-gray-800">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 sm:gap-4 mb-3">
+                    <div className="flex-1 min-w-0 w-full sm:w-auto">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                        <span className="font-bold text-base sm:text-lg md:text-xl text-gray-800">
                           {subject.code}
                         </span>
-                        <span className="text-gray-400">—</span>
-                        <span className="text-gray-700 font-medium text-lg">
+                        <span className="text-gray-400 hidden sm:inline">—</span>
+                        <span className="text-gray-700 font-medium text-sm sm:text-base md:text-lg truncate">
                           {subject.name}
                         </span>
                       </div>
                       
                       {/* Components */}
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {subject.components.map((comp, idx) => (
                           <div
                             key={idx}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-2 ${getTypeColor(comp.type)}`}
+                            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-1 sm:gap-2 ${getTypeColor(comp.type)}`}
                           >
                             <span>{getTypeIcon(comp.type)}</span>
                             <span>{comp.type}</span>
-                            <span className="text-xs opacity-75">
+                            <span className="text-[10px] sm:text-xs opacity-75">
                               • {comp.hours}h/week
                             </span>
                             {comp.type !== "Theory" && (
-                              <span className="text-xs opacity-75">
+                              <span className="text-[10px] sm:text-xs opacity-75">
                                 • {comp.batches} batch{comp.batches > 1 ? "es" : ""}
                               </span>
                             )}
                             {comp.type === "Lab" && comp.labDuration > 1 && (
-                              <span className="text-xs opacity-75">
+                              <span className="text-[10px] sm:text-xs opacity-75">
                                 • {comp.labDuration}h continuous
                               </span>
                             )}
@@ -534,17 +534,17 @@ export default function AddSubject() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex gap-2 w-full sm:w-auto sm:ml-4">
                       <button
                         onClick={() => handleEdit(subject)}
-                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-semibold"
+                        className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-xs sm:text-sm font-semibold whitespace-nowrap"
                         title="Edit subject"
                       >
                         ✏️ Edit
                       </button>
                       <button
                         onClick={() => handleDelete(subject._id)}
-                        className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all text-sm font-semibold"
+                        className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all text-xs sm:text-sm font-semibold whitespace-nowrap"
                         title="Delete subject"
                       >
                         🗑️ Delete
@@ -555,10 +555,10 @@ export default function AddSubject() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-              <span className="text-4xl mb-2 block">📚</span>
-              <p className="text-gray-500 font-medium">No subjects found</p>
-              <p className="text-gray-400 text-sm mt-1">
+            <div className="text-center py-6 sm:py-8 bg-gray-50 rounded-lg sm:rounded-xl border-2 border-dashed border-gray-300 px-4">
+              <span className="text-3xl sm:text-4xl mb-2 block">📚</span>
+              <p className="text-sm sm:text-base text-gray-500 font-medium">No subjects found</p>
+              <p className="text-xs sm:text-sm text-gray-400 mt-1">
                 Add subjects using the form above
               </p>
             </div>

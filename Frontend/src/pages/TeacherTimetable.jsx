@@ -45,19 +45,19 @@ export default function TeacherTimetable() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-3 sm:p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-800">
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">
             Teacher Timetables
           </h2>
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2">
             Generated dynamically from class timetables • Always up-to-date
           </p>
         </div>
 
         {teacherTTs.length === 0 && (
-          <div className="bg-white p-8 rounded-xl border text-center text-gray-500">
+          <div className="bg-white p-6 sm:p-8 rounded-xl border text-center text-sm sm:text-base text-gray-500">
             No teacher timetables found. Generate class timetables first.
           </div>
         )}
@@ -65,14 +65,14 @@ export default function TeacherTimetable() {
         {teacherTTs.map((tt) => (
           <div
             key={tt.teacher}
-            className="mb-8 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden"
+            className="mb-6 sm:mb-8 bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-2xl border border-gray-100 overflow-hidden"
           >
             {/* Header Section */}
-            <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-6 text-white">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-bold text-2xl mb-2">{tt.teacher}</h3>
-                  <div className="flex gap-4 text-sm text-blue-100">
+            <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-4 sm:p-5 md:p-6 text-white">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 sm:gap-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-lg sm:text-xl md:text-2xl mb-2 truncate">{tt.teacher}</h3>
+                  <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-blue-100">
                     <span>📚 {tt.totalClasses} classes</span>
                     <span>📅 {tt.days.length} days</span>
                   </div>
@@ -82,7 +82,7 @@ export default function TeacherTimetable() {
                   onClick={() =>
                     downloadTimetableCSV(tt.timetable, tt.teacher, DAYS)
                   }
-                  className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-lg text-sm font-semibold transition-all border border-white/30"
+                  className="px-3 sm:px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-lg text-xs sm:text-sm font-semibold transition-all border border-white/30 whitespace-nowrap w-full sm:w-auto"
                 >
                   📥 Download CSV
                 </button>
@@ -90,7 +90,7 @@ export default function TeacherTimetable() {
             </div>
 
             {/* Timetable Section */}
-            <div className="p-6">
+            <div className="p-3 sm:p-4 md:p-6 overflow-x-auto">
               {/* ✅ UNIFIED RENDERER - Exact same as generated timetable */}
               <TimetableTable
                 data={tt.timetable}

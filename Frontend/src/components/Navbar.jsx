@@ -52,61 +52,52 @@ export const Navbar = () => {
 
   return (
     <nav className={navbarClass}>
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+      <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-14 sm:h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">
+          <Link to="/" className="flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-primary-foreground font-bold text-base sm:text-lg">
                 R
               </span>
             </div>
-            <span className="font-bold text-xl text-foreground">
-              ResourceOPT
+            <span className="font-bold text-base sm:text-lg md:text-xl text-foreground truncate">
+              <span className="hidden xs:inline">ResourceOPT</span>
+              <span className="xs:hidden">R-OPT</span>
             </span>
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link to="/#features">Features</Link>
-            <Link to="/#workflow">Workflow</Link>
-            <Link to="/#about">About</Link>
-
-            {/* ✅ View Timetable (LOGIN + VERIFIED ONLY) */}
-            {/* {isLoggedIn && userData?.isAccountVerified && (
-              <Link to={timetablePath}>View Timetable</Link>
-            )} */}
+          <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
+            <Link to="/#features" className="text-sm lg:text-base hover:text-primary transition-colors">Features</Link>
+            <Link to="/#workflow" className="text-sm lg:text-base hover:text-primary transition-colors">Workflow</Link>
+            <Link to="/#about" className="text-sm lg:text-base hover:text-primary transition-colors">About</Link>
           </div>
 
-          {/* Right Side */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Right Side - Desktop */}
+          <div className="hidden md:flex items-center space-x-3 lg:space-x-4">
             {isLoggedIn && userData ? (
               <div className="relative group">
-                <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center">
+                <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-primary text-white flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
                   {userData.name?.[0]?.toUpperCase()}
                 </div>
 
-                <div className="absolute right-0 top-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible bg-white shadow-lg rounded-md py-2 w-40 z-50 before:absolute before:-top-3 before:left-0 before:w-full before:h-3">
+                <div className="absolute right-0 top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible bg-white shadow-xl rounded-lg py-2 w-48 z-50 transition-all duration-200 border border-gray-100">
                   {!userData.isAccountVerified && (
                     <button
                       onClick={sendVerificationOtp}
-                      className="px-4 py-2 w-full text-left"
+                      className="px-4 py-2 w-full text-left text-sm hover:bg-gray-50 transition-colors"
                     >
                       Verify Email
                     </button>
                   )}
-                  {/* <button
-                    onClick={logout}
-                    className="px-4 py-2 w-full text-left text-red-500"
-                  >
-                    Logout
-                  </button> */}
-                  <div className="flex flex-col gap-2">
-                    {/* NEW PROFILE SETUP BUTTON */}
+                  <div className="flex flex-col">
                     {userData.role === "student" && (
                       <button
-                        onClick={() => navigate("/profile-setup")}
-                        className="px-4 py-2 text-sm"
+                        onClick={() => {
+                          navigate("/profile-setup");
+                        }}
+                        className="px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors"
                       >
                         Profile
                       </button>
@@ -114,8 +105,7 @@ export const Navbar = () => {
 
                     <button
                       onClick={logout}
-                      // i want to make this button take full height , do not want keep small gap below.
-                      className="px-4 py-2 text-sm bg-red-50 text-red-600"
+                      className="px-4 py-2 text-sm text-left bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                     >
                       Logout
                     </button>
@@ -125,10 +115,10 @@ export const Navbar = () => {
             ) : (
               <>
                 <Link to="/login">
-                  <Button variant="ghost">Login</Button>
+                  <Button variant="ghost" className="text-sm lg:text-base">Login</Button>
                 </Link>
                 <Link to="/login">
-                  <Button>Get Started</Button>
+                  <Button className="text-sm lg:text-base">Get Started</Button>
                 </Link>
               </>
             )}
@@ -136,23 +126,104 @@ export const Navbar = () => {
 
           {/* Mobile Toggle */}
           <button
-            className="md:hidden"
+            className="md:hidden p-1.5 hover:bg-gray-100 rounded-md transition-colors flex-shrink-0"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Toggle menu"
           >
-            {isMenuOpen ? <X /> : <Menu />}
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t">
-            <Link to="/#features">Features</Link>
-            <Link to="/#workflow">Workflow</Link>
-            <Link to="/#about">About</Link>
+          <div className="md:hidden py-4 border-t border-border bg-background/95 backdrop-blur-sm">
+            <div className="flex flex-col space-y-3">
+              <Link 
+                to="/#features" 
+                className="px-3 py-2 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Features
+              </Link>
+              <Link 
+                to="/#workflow" 
+                className="px-3 py-2 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Workflow
+              </Link>
+              <Link 
+                to="/#about" 
+                className="px-3 py-2 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                About
+              </Link>
 
-            {isLoggedIn && userData?.isAccountVerified && (
-              <Link to={timetablePath}>View Timetable</Link>
-            )}
+              {isLoggedIn && userData?.isAccountVerified && (
+                <Link 
+                  to={timetablePath}
+                  className="px-3 py-2 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  View Timetable
+                </Link>
+              )}
+
+              {/* Mobile Auth Section */}
+              {isLoggedIn && userData ? (
+                <div className="pt-3 border-t border-border space-y-2">
+                  {!userData.isAccountVerified && (
+                    <button
+                      onClick={() => {
+                        sendVerificationOtp();
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 rounded-md transition-colors"
+                    >
+                      Verify Email
+                    </button>
+                  )}
+                  {userData.role === "student" && (
+                    <button
+                      onClick={() => {
+                        navigate("/profile-setup");
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 rounded-md transition-colors"
+                    >
+                      Profile
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      logout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full px-3 py-2 text-left text-sm bg-red-50 text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <div className="pt-3 border-t border-border space-y-2">
+                  <Link 
+                    to="/login"
+                    className="block px-3 py-2 text-center text-sm border rounded-md hover:bg-gray-50 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Login
+                  </Link>
+                  <Link 
+                    to="/login"
+                    className="block px-3 py-2 text-center text-sm bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Get Started
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

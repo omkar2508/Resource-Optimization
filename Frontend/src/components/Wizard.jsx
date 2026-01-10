@@ -200,19 +200,46 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
   const handleSave = async (outerKey, table, isTeacher = false) => {
     let payload = {};
     if (isTeacher) {
-      payload = {
-        timetableType: "teacher",
-        teacherName: outerKey,
-        timetableData: table,
-      };
+      // Teacher timetables are not saved separately
+      alert("Teacher timetables are derived from class timetables and cannot be saved separately.");
+      return { success: true, message: "Teacher timetables are derived dynamically" };
     } else {
-      const parts = String(outerKey).split(" ");
-      const year = parts[0] || outerKey;
-      const divMatch = parts.find((p) => /^\d+$/.test(p));
-      const division = divMatch || "1";
+      // Parse outerKey format: "FE Div 1" or "1st Year Div 1"
+      const keyStr = String(outerKey);
+      let year, division;
+      
+      if (keyStr.includes(" Div ")) {
+        // Format: "year Div division"
+        const divIndex = keyStr.indexOf(" Div ");
+        year = keyStr.substring(0, divIndex).trim();
+        division = keyStr.substring(divIndex + 5).trim();
+      } else {
+        // Fallback: try to split and extract
+        const parts = keyStr.split(" ");
+        const divIndex = parts.findIndex(p => p.toLowerCase() === "div");
+        if (divIndex !== -1 && divIndex < parts.length - 1) {
+          year = parts.slice(0, divIndex).join(" ").trim();
+          division = parts[divIndex + 1].trim();
+        } else {
+          const divMatch = parts.find((p) => /^\d+$/.test(p));
+          division = divMatch || "1";
+          year = parts.filter(p => p !== divMatch && p.toLowerCase() !== "div").join(" ").trim() || keyStr;
+        }
+      }
+
+      // Ensure division is valid (should be numeric)
+      if (!/^\d+$/.test(division)) {
+        division = "1";
+      }
+
+      // Ensure year is not empty
+      if (!year || year.length === 0) {
+        console.error("Could not parse year from outerKey:", outerKey);
+        alert("Failed to parse timetable information. Please try again.");
+        return { success: false, message: "Invalid timetable key format" };
+      }
 
       payload = {
-        timetableType: "class",
         year,
         division,
         timetableData: table,
@@ -229,12 +256,15 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
         alert("Saved: " + (res.data.message || "OK"));
         return res.data;
       } else {
-        alert("Save failed: " + JSON.stringify(res.data || "no response"));
+        const errorMsg = res.data?.message || JSON.stringify(res.data || "no response");
+        alert("Save failed: " + errorMsg);
+        console.error("Save failed response:", res.data);
         return res.data;
       }
     } catch (err) {
       console.error("Save error", err);
-      alert("Error saving timetable. See console.");
+      const errorMessage = err.response?.data?.message || err.message || "Unknown error";
+      alert("Error saving timetable: " + errorMessage);
       throw err;
     }
   };
@@ -265,36 +295,37 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
   };
 
   return (
-    <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 w-full max-w-6xl mx-auto overflow-hidden">
-      <div className="bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-3xl font-bold text-white mb-2">
+    <div className="bg-white/90 backdrop-blur-lg rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 w-full max-w-6xl mx-auto overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 p-4 sm:p-6 md:p-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2 truncate">
               Configuration Wizard
             </h2>
-            <p className="text-blue-100">
+            <p className="text-sm sm:text-base text-blue-100">
               {stepTitles[step - 1].icon} {stepTitles[step - 1].title}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             {step < 4 && (
               <button
                 onClick={handleExportConfig}
-                className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white font-medium text-sm border border-white/30 hover:bg-white/30 transition-all flex items-center gap-2"
+                className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white font-medium text-xs sm:text-sm border border-white/30 hover:bg-white/30 transition-all flex items-center justify-center gap-1.5 sm:gap-2"
                 title="Export current configuration as JSON"
               >
                 <span>💾</span>
-                Export Config
+                <span className="hidden sm:inline">Export Config</span>
+                <span className="sm:hidden">Export</span>
               </button>
             )}
-            <div className="px-5 py-3 bg-white/20 backdrop-blur-sm rounded-xl text-white font-bold text-lg border border-white/30">
+            <div className="px-3 sm:px-5 py-2 sm:py-3 bg-white/20 backdrop-blur-sm rounded-lg sm:rounded-xl text-white font-bold text-sm sm:text-lg border border-white/30 whitespace-nowrap">
               Step {step} of 4
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between relative">
-          <div className="absolute top-6 left-0 right-0 h-1 bg-white/20">
+        <div className="flex items-center justify-between relative px-1 sm:px-2 md:px-4 pb-2 sm:pb-0">
+          <div className="absolute top-3 sm:top-4 md:top-6 left-0 right-0 h-0.5 sm:h-1 bg-white/20">
             <div
               className="h-full bg-white transition-all duration-500 ease-out"
               style={{ width: `${((step - 1) / 3) * 100}%` }}
@@ -304,10 +335,10 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
           {stepTitles.map((s) => (
             <div
               key={s.number}
-              className="relative flex flex-col items-center z-10"
+              className="relative flex flex-col items-center z-10 flex-1 min-w-0"
             >
               <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all duration-300 ${
+                className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold transition-all duration-300 text-xs sm:text-sm md:text-base ${
                   step >= s.number
                     ? "bg-white text-blue-600 shadow-lg scale-110"
                     : "bg-white/20 text-white/60 border-2 border-white/30"
@@ -316,18 +347,23 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
                 {step > s.number ? "✓" : s.number}
               </div>
               <span
-                className={`mt-2 text-xs font-semibold ${
+                className={`mt-1 sm:mt-2 text-[10px] sm:text-xs md:text-sm font-semibold ${
                   step >= s.number ? "text-white" : "text-white/60"
                 }`}
               >
                 {s.icon}
+              </span>
+              <span className={`hidden lg:block mt-1 text-[10px] font-semibold text-center truncate w-full ${
+                  step >= s.number ? "text-white" : "text-white/60"
+                }`}>
+                {s.title.split(' ')[0]}
               </span>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="p-8">
+      <div className="p-4 sm:p-6 md:p-8">
         {step === 1 && (
           <div className="animate-fadeIn">
             <YearPanel
@@ -374,25 +410,26 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
         )}
 
         {step < 3 && (
-          <div className="mt-8 flex justify-between items-center pt-6 border-t border-gray-200">
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-gray-200">
             {step > 1 ? (
               <button
                 onClick={() => setStep(step - 1)}
-                className="px-6 py-3 bg-white/80 backdrop-blur-sm text-gray-700 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200 border border-gray-200/50 flex items-center gap-2"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-white/80 backdrop-blur-sm text-gray-700 rounded-lg sm:rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200 border border-gray-200/50 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
-                <span className="text-lg">←</span>
+                <span className="text-base sm:text-lg">←</span>
                 Back
               </button>
             ) : (
-              <div />
+              <div className="hidden sm:block" />
             )}
 
             <button
               onClick={() => setStep(step + 1)}
-              className="px-8 py-3 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 ml-auto"
+              className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-lg sm:rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base sm:ml-auto"
             >
-              Next Step
-              <span className="text-lg">→</span>
+              <span className="hidden sm:inline">Next Step</span>
+              <span className="sm:hidden">Next</span>
+              <span className="text-base sm:text-lg">→</span>
             </button>
           </div>
         )}

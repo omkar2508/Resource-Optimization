@@ -2,6 +2,8 @@
 // src/utils/renderTimetableCell.js
 // UNIFIED CELL RENDERER - Single source of truth for all timetable views
 
+import { formatTimeSlot } from './timeFormat';
+
 /**
  * Universal cell renderer for timetables
  * Used across: Generated, Saved, Teacher, and Student timetables
@@ -11,7 +13,7 @@
  * - Single-hour practicals/labs
  * - Multi-hour continuous labs (2hr, 3hr)
  * - Batch information
- * - Time slot display
+ * - Time slot display (12-hour format)
  */
 
 export function renderTimetableCell(cell, options = {}) {
@@ -113,11 +115,11 @@ export function renderTimetableCell(cell, options = {}) {
                 </div>
               )}
 
-              {/* Time slot (optional) */}
+              {/* Time slot (optional) - Display in 12-hour format */}
               {entry.time_slot && (
                 <div className="flex items-center gap-1.5 text-blue-600 font-semibold text-[9px]">
                   <span className="opacity-70">🕒</span> 
-                  <span>{entry.time_slot}</span>
+                  <span>{formatTimeSlot(entry.time_slot)}</span>
                 </div>
               )}
 
@@ -217,19 +219,19 @@ export function TimetableTable({ data, DAYS, renderOptions = {} }) {
     }
   });
   
-  // Sort time slots
+  // Sort time slots (keep original 24-hour format for sorting, display will be 12-hour)
   const sortedTimeSlots = Array.from(allTimeSlots).sort();
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-gray-100">
-      <table className="w-full border-collapse text-sm">
+    <div className="overflow-x-auto rounded-xl sm:rounded-2xl border border-gray-100 -mx-1 sm:mx-0">
+      <table className="min-w-full border-collapse text-xs sm:text-sm">
         <thead>
           <tr className="bg-blue-600 text-white font-bold">
-            <th className="border p-4 w-32 text-center">Time Slot</th>
+            <th className="border p-2 sm:p-3 md:p-4 w-24 sm:w-28 md:w-32 text-center text-xs sm:text-sm sticky left-0 bg-blue-600 z-10">Time Slot</th>
             {DAYS.map(
               (d) =>
                 data[d] && (
-                  <th key={d} className="border p-4 min-w-[160px] text-center">
+                  <th key={d} className="border p-2 sm:p-3 md:p-4 min-w-[140px] sm:min-w-[160px] md:min-w-[180px] text-center text-xs sm:text-sm whitespace-nowrap">
                     {d}
                   </th>
                 )
@@ -240,14 +242,14 @@ export function TimetableTable({ data, DAYS, renderOptions = {} }) {
         <tbody>
           {sortedTimeSlots.map((timeSlot) => (
             <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
-              <td className="border p-4 font-black bg-blue-50 text-blue-700 text-center text-sm">
-                {timeSlot}
+              <td className="border p-2 sm:p-3 md:p-4 font-black bg-blue-50 text-blue-700 text-center text-xs sm:text-sm sticky left-0 bg-blue-50 z-10 whitespace-nowrap">
+                {formatTimeSlot(timeSlot)}
               </td>
 
               {DAYS.map(
                 (d) =>
                   data[d] && (
-                    <td key={d} className="border p-3 align-top min-h-[110px]">
+                    <td key={d} className="border p-2 sm:p-3 align-top min-h-[90px] sm:min-h-[110px]">
                       {renderTimetableCell(data[d][timeSlot], renderOptions)}
                     </td>
                   )

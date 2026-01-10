@@ -88,19 +88,46 @@ export default function EditTimetable() {
   const handleSave = async () => {
     let payload = {};
     if (isTeacher) {
-      payload = {
-        timetableType: "teacher",
-        teacherName: outerKey,
-        timetableData: localTable,
-      };
+      // Teacher timetables are not saved separately
+      alert("Teacher timetables are derived from class timetables and cannot be saved separately.");
+      return;
     } else {
-      const parts = String(outerKey).split(" ");
-      const year = parts[0] || outerKey;
-      const divMatch = parts.find((p) => /^\d+$/.test(p));
-      const division = divMatch || "1";
+      // Parse outerKey format: "FE Div 1" or "1st Year Div 1"
+      const keyStr = String(outerKey);
+      let year, division;
+      
+      if (keyStr.includes(" Div ")) {
+        // Format: "year Div division"
+        const divIndex = keyStr.indexOf(" Div ");
+        year = keyStr.substring(0, divIndex).trim();
+        division = keyStr.substring(divIndex + 5).trim();
+      } else {
+        // Fallback: try to split and extract
+        const parts = keyStr.split(" ");
+        const divIndex = parts.findIndex(p => p.toLowerCase() === "div");
+        if (divIndex !== -1 && divIndex < parts.length - 1) {
+          year = parts.slice(0, divIndex).join(" ").trim();
+          division = parts[divIndex + 1].trim();
+        } else {
+          const divMatch = parts.find((p) => /^\d+$/.test(p));
+          division = divMatch || "1";
+          year = parts.filter(p => p !== divMatch && p.toLowerCase() !== "div").join(" ").trim() || keyStr;
+        }
+      }
+
+      // Ensure division is valid (should be numeric)
+      if (!/^\d+$/.test(division)) {
+        division = "1";
+      }
+
+      // Ensure year is not empty
+      if (!year || year.length === 0) {
+        console.error("Could not parse year from outerKey:", outerKey);
+        alert("Failed to parse timetable information. Please try again.");
+        return;
+      }
 
       payload = {
-        timetableType: "class",
         year,
         division,
         timetableData: localTable,
@@ -113,14 +140,17 @@ export default function EditTimetable() {
         payload
       );
       if (res?.data?.success) {
-        alert("Timetable saved successfully");
+        alert("Timetable saved successfully: " + (res.data.message || ""));
         navigate(-1);
       } else {
-        alert("Save failed: " + JSON.stringify(res.data || "no response"));
+        const errorMsg = res.data?.message || JSON.stringify(res.data || "no response");
+        alert("Save failed: " + errorMsg);
+        console.error("Save failed response:", res.data);
       }
     } catch (err) {
       console.error("Save error", err);
-      alert("Error saving timetable. See console.");
+      const errorMessage = err.response?.data?.message || err.message || "Unknown error";
+      alert("Error saving timetable: " + errorMessage);
     }
   };
 

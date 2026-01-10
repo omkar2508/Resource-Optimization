@@ -89,22 +89,26 @@ export default function SavedTimetable() {
     );
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Saved Timetables</h2>
+    <div className="p-3 sm:p-4 md:p-6 max-w-6xl mx-auto">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Saved Timetables</h2>
 
-      {timetables.length === 0 && <p>No saved timetables found.</p>}
+      {timetables.length === 0 && (
+        <p className="text-sm sm:text-base text-gray-500 text-center py-8">
+          No saved timetables found.
+        </p>
+      )}
 
       {timetables.map((item) => (
         <div
           key={item._id}
-          className="border p-4 mb-6 bg-white rounded shadow-md"
+          className="border p-3 sm:p-4 md:p-6 mb-4 sm:mb-6 bg-white rounded-lg sm:rounded-xl shadow-md"
         >
-          <div className="flex justify-between mb-2">
-            <h3 className="font-bold text-lg">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+            <h3 className="font-bold text-base sm:text-lg md:text-xl">
               {item.year} — Division {item.division}
             </h3>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
               <button
                 onClick={() =>
                   downloadTimetableCSV(
@@ -113,14 +117,14 @@ export default function SavedTimetable() {
                     DAYS
                   )
                 }
-                className="px-3 py-1 bg-gray-700 text-white rounded text-sm"
+                className="flex-1 sm:flex-initial px-3 py-1.5 sm:py-1 bg-gray-700 hover:bg-gray-800 text-white rounded text-xs sm:text-sm transition-colors"
               >
                 Download
               </button>
 
               <button
                 onClick={() => confirmDeleteTimetable(item._id)}
-                className="px-3 py-1 bg-red-600 text-white rounded text-sm"
+                className="flex-1 sm:flex-initial px-3 py-1.5 sm:py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs sm:text-sm transition-colors"
               >
                 Delete
               </button>
@@ -128,15 +132,17 @@ export default function SavedTimetable() {
           </div>
 
           {/* ✅ UNIFIED RENDERER - Same as generated timetable */}
-          <TimetableTable 
-            data={item.timetableData} 
-            DAYS={DAYS}
-            renderOptions={{
-              showYearDivision: false,  // Don't show year/div in class timetables
-              filterByBatch: null,       // No batch filtering
-              highlightBatch: false      // No highlighting
-            }}
-          />
+          <div className="overflow-x-auto -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6">
+            <TimetableTable 
+              data={item.timetableData} 
+              DAYS={DAYS}
+              renderOptions={{
+                showYearDivision: false,  // Don't show year/div in class timetables
+                filterByBatch: null,       // No batch filtering
+                highlightBatch: false      // No highlighting
+              }}
+            />
+          </div>
         </div>
       ))}
     </div>
