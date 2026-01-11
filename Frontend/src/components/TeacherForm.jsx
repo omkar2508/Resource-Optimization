@@ -24,19 +24,14 @@ export default function TeacherForm({
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null);
 
-  const [maxHoursPerDay, setMaxHoursPerDay] = useState(4); // ✅ NEW: Max teaching hours per day
+  const [maxHoursPerDay, setMaxHoursPerDay] = useState(4);
 
-  // =====================================================
   // Fetch teachers (role = teacher)
-  // =====================================================
   useEffect(() => {
     const loadTeachers = async () => {
       try {
-        const res = await axios.get("/api/admin/users"); // EXISTING API
-
-        // FILTER ONLY TEACHERS (frontend only)
+        const res = await axios.get("/api/admin/users");
         const teachersOnly = res.data.users.filter((u) => u.role === "teacher");
-
         setTeacherUsers(teachersOnly);
       } catch (err) {
         console.error("Failed to load teachers", err);
@@ -46,9 +41,7 @@ export default function TeacherForm({
     loadTeachers();
   }, []);
 
-  // =====================================================
   // Available subjects
-  // =====================================================
   const availableSubjects = useMemo(() => {
     const list = [];
     Object.keys(yearData || {}).forEach((yr) => {
@@ -64,9 +57,7 @@ export default function TeacherForm({
     return list;
   }, [yearData]);
 
-  // =====================================================
   // Divisions per year
-  // =====================================================
   useEffect(() => {
     const newDivs = {};
     selectedYearsLocal.forEach((yr) => {
@@ -76,19 +67,22 @@ export default function TeacherForm({
     setDivisionsByYear(newDivs);
   }, [selectedYearsLocal, yearData]);
 
-  // =====================================================
-  // Handlers
-  // =====================================================
+  // ✅ ORIGINAL LOGIC: Toggle all components of a subject (Theory + Lab + Tutorial)
   function toggleSubject(sub) {
     const key = `${sub.code}_${sub.year}`;
     const exists = selectedSubjects.some((s) => `${s.code}_${s.year}` === key);
 
     if (exists) {
+      // Remove ALL components with this code and year
       setSelectedSubjects(
         selectedSubjects.filter((s) => `${s.code}_${s.year}` !== key)
       );
     } else {
-      setSelectedSubjects([...selectedSubjects, sub]);
+      // Add ALL components with this code and year
+      const allComponents = availableSubjects.filter(
+        (s) => s.code === sub.code && s.year === sub.year
+      );
+      setSelectedSubjects([...selectedSubjects, ...allComponents]);
     }
   }
 
@@ -111,19 +105,10 @@ export default function TeacherForm({
     setDivisionsByYear(copy);
   }
 
-  // =====================================================
   // Save Teacher
-  // =====================================================
   function saveTeacher() {
     setError("");
 
-
-    // if (!selectedTeacher) return setError("Select a teacher");
-    // if (selectedSubjects.length === 0)
-    //   return setError("Select at least one subject");
-    // if (selectedYearsLocal.length === 0) return setError("Select years");
-
-    // Change 24.12.2025
     if (!selectedTeacher) {
       toast.error("Please select a teacher");
       return;
@@ -157,20 +142,15 @@ export default function TeacherForm({
       divisions: divisionsByYear,
       canTakeLabs,
       canTakeTutorial,
-      maxHoursPerDay, // ✅ NEW: Include max hours
+      maxHoursPerDay,
     };
 
     if (editingId) {
       setTeachers(teachers.map((t) => (t.id === editingId ? teacherObj : t)));
       setEditingId(null);
-    } else {
-      setTeachers([...teachers, teacherObj]);
-    }
-
-    // Change Add toast 24.12.2025
-    if (editingId) {
       toast.success("Teacher assignment updated successfully");
     } else {
+      setTeachers([...teachers, teacherObj]);
       toast.success("Teacher added successfully");
     }
 
@@ -181,11 +161,10 @@ export default function TeacherForm({
     setDivisionsByYear({});
     setCanTakeLabs(false);
     setCanTakeTutorial(false);
-    setMaxHoursPerDay(4); // ✅ NEW: Reset to default
+    setMaxHoursPerDay(4);
   }
-  // =====================================================
+
   // Edit / Delete
-  // =====================================================
   function editTeacher(t) {
     setEditingId(t.id);
     setSelectedTeacher(t.teacherId);
@@ -194,7 +173,7 @@ export default function TeacherForm({
     setDivisionsByYear(t.divisions);
     setCanTakeLabs(t.canTakeLabs || false);
     setCanTakeTutorial(t.canTakeTutorial || false);
-    setMaxHoursPerDay(t.maxHoursPerDay || 4); // ✅ NEW: Load existing value
+    setMaxHoursPerDay(t.maxHoursPerDay || 4);
   }
 
   function deleteTeacher(id) {
@@ -202,9 +181,25 @@ export default function TeacherForm({
     toast.success("Teacher removed");
   }
 
-  // =====================================================
-  // UI
-  // =====================================================
+  // ✅ Group subjects by code+year for display (show only once per subject)
+  const groupedSubjects = useMemo(() => {
+    const groups = new Map();
+    availableSubjects.forEach((s) => {
+      const key = `${s.code}_${s.year}`;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          code: s.code,
+          name: s.name,
+          year: s.year,
+          types: [s.type],
+        });
+      } else {
+        groups.get(key).types.push(s.type);
+      }
+    });
+    return Array.from(groups.values());
+  }, [availableSubjects]);
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Add Teachers</h3>
@@ -227,7 +222,7 @@ export default function TeacherForm({
           </select>
         </div>
 
-        {/* Subjects */}
+        {/* Subjects - ✅ FIXED: Show grouped subjects with unique keys */}
         <div className="mb-3 sm:mb-4">
           <div className="text-sm sm:text-base font-medium mb-2">Subjects</div>
           <div className="overflow-x-auto border rounded-lg max-h-48 sm:max-h-64">
@@ -237,16 +232,17 @@ export default function TeacherForm({
                   <th className="border p-1.5 sm:p-2 text-center sticky left-0 bg-gray-100 z-10">✓</th>
                   <th className="border p-1.5 sm:p-2 text-left min-w-[80px] sm:min-w-[100px]">Code</th>
                   <th className="border p-1.5 sm:p-2 text-left min-w-[60px] sm:min-w-[80px]">Year</th>
-                  <th className="border p-1.5 sm:p-2 text-left min-w-[70px] sm:min-w-[90px]">Type</th>
+                  <th className="border p-1.5 sm:p-2 text-left min-w-[100px] sm:min-w-[120px]">Types</th>
                 </tr>
               </thead>
               <tbody>
-                {availableSubjects.map((s) => {
+                {groupedSubjects.map((s, idx) => {
+                  const key = `${s.code}_${s.year}`;
                   const selected = selectedSubjects.some(
-                    (x) => x.code === s.code && x.year === s.year
+                    (x) => `${x.code}_${x.year}` === key
                   );
                   return (
-                    <tr key={`${s.code}_${s.year}`} className="hover:bg-gray-50">
+                    <tr key={`${key}_${idx}`} className="hover:bg-gray-50">
                       <td className="border p-1.5 sm:p-2 text-center sticky left-0 bg-white z-10">
                         <input
                           type="checkbox"
@@ -257,7 +253,11 @@ export default function TeacherForm({
                       </td>
                       <td className="border p-1.5 sm:p-2 whitespace-nowrap">{s.code}</td>
                       <td className="border p-1.5 sm:p-2 whitespace-nowrap">{s.year}</td>
-                      <td className="border p-1.5 sm:p-2 whitespace-nowrap">{s.type}</td>
+                      <td className="border p-1.5 sm:p-2 whitespace-nowrap">
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                          {s.types.join(", ")}
+                        </span>
+                      </td>
                     </tr>
                   );
                 })}
@@ -329,7 +329,7 @@ export default function TeacherForm({
 
         {error && <div className="text-red-600 mb-2 text-sm sm:text-base p-2 bg-red-50 rounded">{error}</div>}
         
-        {/* ✅ NEW: Max Teaching Hours Per Day */}
+        {/* Max Teaching Hours Per Day */}
         <div className="mb-3 sm:mb-4">
           <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
             Max Teaching Hours Per Day
@@ -355,22 +355,7 @@ export default function TeacherForm({
         </button>
       </div>
 
-      {/* List */}
-      {/* <h3 className="font-semibold mb-2">Teachers Added</h3>
-
-      {teachers.map((t) => (
-        <div key={t.id} className="border p-3 rounded mb-2 bg-white">
-          <div className="font-semibold">{t.name}</div>
-          <div className="text-sm">
-            Subjects: {t.subjects.map((s) => s.code).join(", ")}
-          </div>
-        </div>
-      ))} */}
-
-
-
-      {/* Make table to display teachers instead of card: Change 24.12.2025 */}
-      {/* List */}
+      {/* ✅ Teachers Added Table - Show types for each subject */}
       <h3 className="text-base sm:text-lg font-semibold mb-2 sm:mb-3">Teachers Added</h3>
 
       {teachers.length === 0 ? (
@@ -392,53 +377,69 @@ export default function TeacherForm({
 
               <tbody>
                 {[...teachers]
-                  .sort((a, b) => a.name.localeCompare(b.name)) // Alphabetical order
-                  .map((t, index) => (
-                    <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="border p-1.5 sm:p-2 text-xs sm:text-sm sticky left-0 bg-white z-10 whitespace-nowrap">{index + 1}</td>
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((t, index) => {
+                    // ✅ Group subjects by code to show types
+                    const subjectGroups = new Map();
+                    t.subjects.forEach((s) => {
+                      const key = `${s.code}`;
+                      if (!subjectGroups.has(key)) {
+                        subjectGroups.set(key, [s.type]);
+                      } else {
+                        if (!subjectGroups.get(key).includes(s.type)) {
+                          subjectGroups.get(key).push(s.type);
+                        }
+                      }
+                    });
 
-                      <td className="border p-1.5 sm:p-2 font-medium text-xs sm:text-sm whitespace-nowrap">
-                        {t.name}
-                      </td>
+                    const subjectDisplay = Array.from(subjectGroups.entries())
+                      .map(([code, types]) => `${code} (${types.join(", ")})`)
+                      .join(", ");
 
-                      <td className="border p-1.5 sm:p-2 text-xs sm:text-sm break-words">
-                        <div className="max-w-[200px] sm:max-w-none truncate sm:whitespace-normal" title={t.subjects.map((s) => s.code).join(", ")}>
-                          {t.subjects.map((s) => s.code).join(", ")}
-                        </div>
-                      </td>
+                    return (
+                      <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="border p-1.5 sm:p-2 text-xs sm:text-sm sticky left-0 bg-white z-10 whitespace-nowrap">{index + 1}</td>
 
-                      <td className="border p-1.5 sm:p-2 text-xs sm:text-sm whitespace-nowrap">
-                        {t.years.join(", ")}
-                      </td>
+                        <td className="border p-1.5 sm:p-2 font-medium text-xs sm:text-sm whitespace-nowrap">
+                          {t.name}
+                        </td>
 
-                      <td className="border p-1.5 sm:p-2 text-xs sm:text-sm whitespace-nowrap">{t.maxHoursPerDay || 4}</td>
-                      
-                      <td className="border p-1.5 sm:p-2 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-                          <button
-                            onClick={() => editTeacher(t)}
-                            className="px-2 sm:px-3 py-1 text-blue-600 hover:bg-blue-50 rounded text-xs sm:text-sm font-medium transition-colors whitespace-nowrap"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => deleteTeacher(t.id)}
-                            className="px-2 sm:px-3 py-1 text-red-600 hover:bg-red-50 rounded text-xs sm:text-sm font-medium transition-colors whitespace-nowrap"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                      
-                    </tr>
-                  ))}
+                        <td className="border p-1.5 sm:p-2 text-xs sm:text-sm break-words">
+                          <div className="max-w-[200px] sm:max-w-none truncate sm:whitespace-normal" title={subjectDisplay}>
+                            {subjectDisplay}
+                          </div>
+                        </td>
+
+                        <td className="border p-1.5 sm:p-2 text-xs sm:text-sm whitespace-nowrap">
+                          {t.years.join(", ")}
+                        </td>
+
+                        <td className="border p-1.5 sm:p-2 text-xs sm:text-sm whitespace-nowrap">{t.maxHoursPerDay || 4}</td>
+                        
+                        <td className="border p-1.5 sm:p-2 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                            <button
+                              onClick={() => editTeacher(t)}
+                              className="px-2 sm:px-3 py-1 text-blue-600 hover:bg-blue-50 rounded text-xs sm:text-sm font-medium transition-colors whitespace-nowrap"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => deleteTeacher(t.id)}
+                              className="px-2 sm:px-3 py-1 text-red-600 hover:bg-red-50 rounded text-xs sm:text-sm font-medium transition-colors whitespace-nowrap"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
         </div>
       )}
-
     </div>
   );
 }
-

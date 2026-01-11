@@ -1,4 +1,4 @@
-// src/pages/StudentTimetable.jsx
+// src/pages/StudentTimetable.jsx - ✅ FIXED: Proper spacing below navbar
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useAppContext } from "../context/AppContext";
@@ -72,21 +72,24 @@ export default function StudentTimetable() {
 
   if (loading)
     return (
-      <div className="p-6 flex flex-col items-center justify-center min-h-screen">
-        <div className="h-10 w-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-3 text-blue-600 font-medium">
-          Fetching your personal timetable...
-        </p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="h-10 w-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-3 text-blue-600 font-medium">
+            Fetching your personal timetable...
+          </p>
+        </div>
       </div>
     );
 
   const academicYearLabel = getAcademicYearLabel(userData?.admissionYear);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 pb-6 sm:pb-8 md:pb-10">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100">
       <Navbar />
 
-      <div className="p-4 sm:p-6 md:p-8 lg:p-10 max-w-7xl mx-auto pt-20 sm:pt-22 md:pt-24">
+      {/* ✅ FIXED: Proper top padding to prevent content hiding under navbar */}
+      <div className="pt-16 sm:pt-20 md:pt-24 px-4 sm:px-6 md:px-8 lg:px-10 pb-10 max-w-7xl mx-auto">
         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 md:mb-8 text-gray-800">
           {userData?.role === "student"
             ? "My Class Timetable"
@@ -111,7 +114,7 @@ export default function StudentTimetable() {
             <div className="bg-white p-3 sm:p-4 md:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 text-black border-b border-gray-100">
               <div className="flex flex-col flex-1 min-w-0">
                 <h3 className="font-bold text-lg sm:text-xl md:text-2xl text-blue-900 truncate">
-                  {item.year} — Division {item.division}
+                  {item.year} – Division {item.division}
                 </h3>
                 <span className="text-xs sm:text-sm font-semibold text-gray-600 mt-1">
                   Department: {item.department}
@@ -140,8 +143,8 @@ export default function StudentTimetable() {
               </div>
             </div>
 
+            {/* ✅ RESPONSIVE: Proper overflow handling */}
             <div className="p-3 sm:p-4 md:p-6 overflow-x-auto">
-              {/* ✅ Unified renderer with batch filtering */}
               <TimetableTable
                 data={item.timetableData}
                 DAYS={DAYS}

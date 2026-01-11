@@ -39,7 +39,7 @@ console.log("Loaded admin:", process.env.ADMIN_EMAIL);
 // ----------------------------------------------
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:8080"],
+    origin: ["http://localhost:5173", "http://localhost:8080", "http://10.26.55.149:8080"],
     credentials: true,
   })
 );

@@ -9,7 +9,6 @@ import { Menu, X } from "lucide-react";
 export default function AdminLayout() {
   const { axios, navigate, setIsAdmin } = useAppContext();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  // Open sidebar by default on mobile for better UX
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -19,7 +18,6 @@ export default function AdminLayout() {
       if (!mobile) {
         setIsSidebarOpen(false);
       } else {
-        // Keep sidebar open on mobile when resizing from desktop
         setIsSidebarOpen(true);
       }
     };
@@ -44,11 +42,8 @@ export default function AdminLayout() {
     }
   };
 
-  // Initialize idle logout hook
   useIdleLogout(handleLogout);
 
-  // Sidebar sections
-  // 1. View Section - This displays data
   const viewLinks = [
     {
       name: "View Timetable",
@@ -62,7 +57,6 @@ export default function AdminLayout() {
     },
   ];
 
-  // 2. Add / Manage - Modification
   const manageLinks = [
     {
       name: "Add Teacher",
@@ -86,7 +80,7 @@ export default function AdminLayout() {
       {/* ================= NAVBAR ================= */}
       <header className="fixed top-0 left-0 right-0 z-50 h-14 sm:h-16 bg-white border-b shadow-sm flex items-center justify-between px-3 sm:px-4 md:px-6">
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Mobile Sidebar Toggle - Always visible on mobile */}
+          {/* Mobile Sidebar Toggle */}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="md:hidden p-2.5 hover:bg-blue-100 rounded-lg transition-colors flex-shrink-0 bg-blue-100 text-blue-700 border-2 border-blue-300 shadow-sm font-bold"
@@ -95,25 +89,26 @@ export default function AdminLayout() {
             {isSidebarOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
 
+          {/* ✅ BRANDING: ResourceOPT Logo */}
           <Link to="/" className="flex items-center space-x-1.5 sm:space-x-2 min-w-0">
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-primary-foreground font-bold text-base sm:text-lg">R</span>
             </div>
             <span className="font-bold text-base sm:text-lg md:text-xl text-foreground truncate">
-              <span className="hidden xs:inline">ResourceOPT</span>
-              <span className="xs:hidden">R-OPT</span>
+              ResourceOPT
             </span>
           </Link>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
-          <span className="text-xs sm:text-sm text-gray-600 hidden sm:inline">Hi, Admin</span>
+          {/* ✅ SHOW "Hi, Admin" */}
+          <span className="text-xs sm:text-sm text-gray-600 font-medium">Hi, Admin</span>
+          {/* ✅ CHANGED: "Out" → "Logout" */}
           <button
             onClick={handleLogout}
-            className="border rounded-full px-2 sm:px-3 md:px-4 py-1 text-xs sm:text-sm hover:bg-gray-100 transition-colors whitespace-nowrap"
+            className="border rounded-full px-2 sm:px-3 md:px-4 py-1 text-xs sm:text-sm hover:bg-gray-100 transition-colors whitespace-nowrap font-medium"
           >
-            <span className="hidden sm:inline">Logout</span>
-            <span className="sm:hidden">Out</span>
+            Logout
           </button>
         </div>
       </header>
@@ -139,20 +134,7 @@ export default function AdminLayout() {
         `}
       >
         <div className={`${isMobile ? "px-4 py-4" : "px-2 lg:px-4 py-4 lg:py-6"}`}>
-          {/* Close button for mobile */}
-          {isMobile && (
-            <div className="flex justify-end mb-4">
-              <button
-                onClick={() => setIsSidebarOpen(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                aria-label="Close sidebar"
-              >
-                <X size={20} className="text-gray-600" />
-              </button>
-            </div>
-          )}
-
-          {/* Button for generate timetable */}
+          {/* Generate Timetable Button */}
           <NavLink
             to="/admin/dashboard"
             onClick={() => isMobile && setIsSidebarOpen(false)}
@@ -172,7 +154,6 @@ export default function AdminLayout() {
             <span className={`${isMobile ? "block text-base font-bold" : "hidden lg:block text-sm lg:text-base"}`}>
               Generate Timetable
             </span>
-            {/* Tooltip for mobile icon-only mode */}
             {!isMobile && (
               <span className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
                 Generate Timetable
@@ -213,7 +194,6 @@ export default function AdminLayout() {
                   {isActive && (
                     <span className={`${isMobile ? "block" : "hidden lg:block"} ml-auto w-2 h-2 rounded-full bg-blue-500 flex-shrink-0`}></span>
                   )}
-                  {/* Tooltip for mobile icon-only mode */}
                   {!isMobile && (
                     <span className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
                       {item.name}
@@ -226,7 +206,7 @@ export default function AdminLayout() {
 
           <div className={`${isMobile ? "my-4" : "my-3 lg:my-4"} border-t border-gray-100`} />
 
-          {/* Add / Manage Section */}
+          {/* Manage Resources Section */}
           <p className={`${isMobile ? "block" : "hidden lg:block"} px-3 text-[11px] lg:text-[13px] font-semibold text-gray-400 uppercase mt-4 lg:mt-6 mb-2 tracking-wide`}>
             Manage Resources
           </p>
@@ -259,7 +239,6 @@ export default function AdminLayout() {
                   {isActive && (
                     <span className={`${isMobile ? "block" : "hidden lg:block"} ml-auto w-2 h-2 rounded-full bg-blue-500 flex-shrink-0`}></span>
                   )}
-                  {/* Tooltip for mobile icon-only mode */}
                   {!isMobile && (
                     <span className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
                       {item.name}
@@ -273,6 +252,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* ================= CONTENT ================= */}
+      {/* ✅ FIXED: Proper padding to prevent content from going under navbar */}
       <main className={`pt-14 sm:pt-16 pb-6 transition-all duration-300 min-h-[calc(100vh-3.5rem)] sm:min-h-[calc(100vh-4rem)] ${
         isMobile 
           ? "pl-0" 

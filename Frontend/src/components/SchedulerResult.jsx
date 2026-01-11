@@ -56,95 +56,105 @@ export default function SchedulerResult({ result, onBack, onSave }) {
   const allConflicts = [...conflicts, ...roomConflicts];
   const hasIssues = unallocated.length > 0 || allConflicts.length > 0 || criticalIssues.length > 0;
 
-  const defaultSave = async (outerKey, table, isTeacher = false) => {
-    let payload = {};
-    if (isTeacher) {
-      // Teacher timetables are not saved separately
-      toast.info("Teacher timetables are derived from class timetables and cannot be saved separately.");
-      return { success: true, message: "Teacher timetables are derived dynamically" };
-    } else {
-      // Parse outerKey format: "FE Div 1" or "1st Year Div 1"
-      // Handle both formats by finding "Div" as separator
-      const keyStr = String(outerKey);
-      let year, division;
+// FIXED: defaultSave function with improved year parsing
+const defaultSave = async (outerKey, table, isTeacher = false) => {
+  let payload = {};
+  if (isTeacher) {
+    // Teacher timetables are not saved separately
+    toast.info("Teacher timetables are derived from class timetables and cannot be saved separately.");
+    return { success: true, message: "Teacher timetables are derived dynamically" };
+  } else {
+    // Parse outerKey format: "3rd Div 1" or "1st Year Div 1"
+    const keyStr = String(outerKey);
+    let year, division;
+    
+    console.log("🔍 Parsing outerKey:", keyStr);
+    
+    if (keyStr.includes(" Div ")) {
+      // Format: "year Div division"
+      const divIndex = keyStr.indexOf(" Div ");
+      year = keyStr.substring(0, divIndex).trim();
+      division = keyStr.substring(divIndex + 5).trim();
       
-      if (keyStr.includes(" Div ")) {
-        // Format: "year Div division"
-        const divIndex = keyStr.indexOf(" Div ");
-        year = keyStr.substring(0, divIndex).trim();
-        division = keyStr.substring(divIndex + 5).trim();
+      console.log("✅ Extracted - Year:", year, "Division:", division);
+    } else {
+      // Fallback: try to split and extract
+      const parts = keyStr.split(" ");
+      const divIndex = parts.findIndex(p => p.toLowerCase() === "div");
+      
+      if (divIndex !== -1 && divIndex < parts.length - 1) {
+        year = parts.slice(0, divIndex).join(" ").trim();
+        division = parts[divIndex + 1].trim();
       } else {
-        // Fallback: try to split and extract
-        const parts = keyStr.split(" ");
-        // Find division (should be numeric, usually last numeric part after "Div")
-        const divIndex = parts.findIndex(p => p.toLowerCase() === "div");
-        if (divIndex !== -1 && divIndex < parts.length - 1) {
-          year = parts.slice(0, divIndex).join(" ").trim();
-          division = parts[divIndex + 1].trim();
-        } else {
-          // Last resort: find first numeric part as division
-          const divMatch = parts.find((p) => /^\d+$/.test(p));
-          division = divMatch || "1";
-          year = parts.filter(p => p !== divMatch && p.toLowerCase() !== "div").join(" ").trim() || keyStr;
-        }
+        // Last resort: find first numeric part as division
+        const divMatch = parts.find((p) => /^\d+$/.test(p));
+        division = divMatch || "1";
+        year = parts.filter(p => p !== divMatch && p.toLowerCase() !== "div").join(" ").trim() || keyStr;
       }
-
-      // Ensure division is valid (should be numeric)
-      if (!/^\d+$/.test(division)) {
-        division = "1"; // Default to "1" if invalid
-      }
-
-      // Ensure year is not empty
-      if (!year || year.length === 0) {
-        console.error("Could not parse year from outerKey:", outerKey);
-        toast.error("Failed to parse timetable information. Please try again.");
-        return { success: false, message: "Invalid timetable key format" };
-      }
-
-      payload = {
-        year,
-        division,
-        timetableData: table,
-      };
     }
 
-    try {
-      const res = await axios.post("http://localhost:5000/api/timetable/save", payload);
-      if (res?.data?.success) {
-        toast.success("Saved successfully: " + (res.data.message || ""));
-        return res.data;
-      } else {
-        toast.error(
-          "Save failed: " + (res.data?.message || "Please try again or check console for details."),
-          { autoClose: 5000 }
-        );
-        console.error("Save failed response:", res.data);
-        return res.data;
-      }
-    } catch (err) {
-      console.error("Save error", err);
-      const errorMessage = err.response?.data?.message || err.message || "Unknown error";
-      toast.error("Error saving timetable: " + errorMessage, { autoClose: 5000 });
-      throw err;
+    // ✅ FIX: Ensure division is valid (should be numeric or alpha like "A", "B")
+    // Accept both numeric (1, 2, 3) and alphabetic (A, B, C) divisions
+    if (!/^[0-9A-Za-z]+$/.test(division)) {
+      console.warn("⚠️ Invalid division format:", division, "- defaulting to 1");
+      division = "1";
     }
-  };
 
-  const handleSave = (outerKey, table, isTeacher = false) => {
+    // Ensure year is not empty
+    if (!year || year.length === 0) {
+      console.error("❌ Could not parse year from outerKey:", outerKey);
+      toast.error("Failed to parse timetable information. Please try again.");
+      return { success: false, message: "Invalid timetable key format" };
+    }
+
+    console.log("📤 Sending payload - Year:", year, "Division:", division);
+
+    payload = {
+      year,
+      division,
+      timetableData: table,
+    };
+  }
+
+  try {
+    const res = await axios.post("http://localhost:5000/api/timetable/save", payload);
+    
+    console.log("📥 Server response:", res.data);
+    
+    if (res?.data?.success) {
+      toast.success("Saved successfully: " + (res.data.message || ""));
+      return res.data;
+    } else {
+      toast.error(
+        "Save failed: " + (res.data?.message || "Please try again or check console for details."),
+        { autoClose: 5000 }
+      );
+      console.error("❌ Save failed response:", res.data);
+      return res.data;
+    }
+  } catch (err) {
+    console.error("❌ Save error:", err);
+    console.error("Error details:", err.response?.data);
+    const errorMessage = err.response?.data?.message || err.message || "Unknown error";
+    toast.error("Error saving timetable: " + errorMessage, { autoClose: 5000 });
+    throw err;
+  }
+};
+
+  const handleSave = async (outerKey, table, isTeacher = false) => {
     if (allConflicts.length > 0) {
       toast.error(
-      "Cannot save timetable with conflicts. Please resolve all teacher and room conflicts before saving.",
-      {
-        duration: 5000,
-      }
-    );
+        "Cannot save timetable with conflicts. Please resolve all teacher and room conflicts before saving.",
+        { duration: 5000 }
+      );
       return;
     }
 
     if (criticalIssues.length > 0) {
       toast.error(
-      `Cannot save timetable due to critical issues:\n${criticalIssues.join(", ")}`,
-      { duration: 6000 }
-    );
+        `Cannot save timetable due to critical issues:\n${criticalIssues.join(", ")}`,
+        { duration: 6000 }
+      );
       return;
     }
 
@@ -152,26 +162,25 @@ export default function SchedulerResult({ result, onBack, onSave }) {
       try {
         const maybePromise = onSave(outerKey, table, isTeacher);
         if (maybePromise && typeof maybePromise.then === "function") {
-          maybePromise.catch((e) => console.error("onSave error", e));
-          toast.error("Failed to save timetable");
+          // ✅ AWAIT the promise and check the result
+          const result = await maybePromise;
+          
+          // Only show success if the save actually succeeded
+          if (result && result.success) {
+            toast.success("Timetable saved successfully");
+          }
         }
       } catch (e) {
         console.error("onSave threw", e);
-        toast.error("Failed to save timetable");
+        toast.error("Failed to save timetable: " + (e.message || "Unknown error"));
       }
     } else {
-      defaultSave(outerKey, table, isTeacher).catch(() => {});
+      try {
+        await defaultSave(outerKey, table, isTeacher);
+      } catch (e) {
+        console.error("defaultSave error", e);
+      }
     }
-  };
-
-  const handleEdit = (outerKey, table, isTeacher = false) => {
-    navigate("/admin/edit-timetable", {
-      state: {
-        table,
-        outerKey,
-        isTeacher,
-      },
-    });
   };
 
   const canSave = allConflicts.length === 0 && criticalIssues.length === 0;

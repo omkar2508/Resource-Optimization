@@ -24,10 +24,11 @@ export const Navbar = () => {
     ${
       isHomePage
         ? "bg-background/80 backdrop-blur-md"
-        : "bg-transparent backdrop-blur-xl"
+        : "bg-white backdrop-blur-xl"
     }
     border-b border-border
     transition-all duration-300
+    shadow-sm
   `;
 
   // ✅ SAFE ROLE-BASED PATH
@@ -54,7 +55,7 @@ export const Navbar = () => {
     <nav className={navbarClass}>
       <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16">
-          {/* Logo */}
+          {/* Logo - ✅ BRANDING: ResourceOPT */}
           <Link to="/" className="flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-shrink-0">
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-primary-foreground font-bold text-base sm:text-lg">
@@ -62,8 +63,7 @@ export const Navbar = () => {
               </span>
             </div>
             <span className="font-bold text-base sm:text-lg md:text-xl text-foreground truncate">
-              <span className="hidden xs:inline">ResourceOPT</span>
-              <span className="xs:hidden">R-OPT</span>
+              ResourceOPT
             </span>
           </Link>
 
@@ -78,8 +78,14 @@ export const Navbar = () => {
           <div className="hidden md:flex items-center space-x-3 lg:space-x-4">
             {isLoggedIn && userData ? (
               <div className="relative group">
-                <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-primary text-white flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
-                  {userData.name?.[0]?.toUpperCase()}
+                {/* ✅ SHOW "Hi, Admin" or "Hi, [Name]" */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-700 font-medium">
+                    Hi, {userData.role === "admin" ? "Admin" : userData.name?.split(' ')[0] || "User"}
+                  </span>
+                  <div className="ml-2 w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-primary text-white flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
+                    {userData.name?.[0]?.toUpperCase() || userData.role?.[0]?.toUpperCase()}
+                  </div>
                 </div>
 
                 <div className="absolute right-0 top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible bg-white shadow-xl rounded-lg py-2 w-48 z-50 transition-all duration-200 border border-gray-100">
@@ -103,6 +109,7 @@ export const Navbar = () => {
                       </button>
                     )}
 
+                    {/* ✅ CHANGED: "Out" → "Logout" */}
                     <button
                       onClick={logout}
                       className="px-4 py-2 text-sm text-left bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
@@ -173,6 +180,11 @@ export const Navbar = () => {
               {/* Mobile Auth Section */}
               {isLoggedIn && userData ? (
                 <div className="pt-3 border-t border-border space-y-2">
+                  {/* ✅ SHOW "Hi, Admin" on mobile */}
+                  <div className="px-3 py-2 text-sm font-medium text-gray-700">
+                    Hi, {userData.role === "admin" ? "Admin" : userData.name?.split(' ')[0] || "User"}
+                  </div>
+                  
                   {!userData.isAccountVerified && (
                     <button
                       onClick={() => {
@@ -195,6 +207,7 @@ export const Navbar = () => {
                       Profile
                     </button>
                   )}
+                  {/* ✅ CHANGED: Mobile "Out" → "Logout" */}
                   <button
                     onClick={() => {
                       logout();
