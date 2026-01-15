@@ -30,16 +30,25 @@ export default function TeacherForm({
   useEffect(() => {
     const loadTeachers = async () => {
       try {
-        const res = await axios.get("/api/admin/users");
-        const teachersOnly = res.data.users.filter((u) => u.role === "teacher");
-        setTeacherUsers(teachersOnly);
+        // ✅ FIX: Use the correct endpoint that fetches only teachers
+        const res = await axios.get("/api/teacher", {
+          withCredentials: true, // ✅ Include credentials for authentication
+        });
+        
+        if (res.data.success && res.data.teachers) {
+          setTeacherUsers(res.data.teachers);
+        } else {
+          console.warn("No teachers found in response");
+          setTeacherUsers([]);
+        }
       } catch (err) {
         console.error("Failed to load teachers", err);
+        toast.error("Failed to load teachers. Please refresh the page.");
       }
     };
 
     loadTeachers();
-  }, []);
+  }, [axios]);
 
   // Available subjects
   const availableSubjects = useMemo(() => {

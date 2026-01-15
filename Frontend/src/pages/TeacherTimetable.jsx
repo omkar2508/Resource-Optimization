@@ -15,7 +15,7 @@ export default function TeacherTimetable() {
   useEffect(() => {
     const fetchAndBuild = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/timetable/all");
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/timetable/all`);
         if (res.data.success) {
           // Build teacher timetables dynamically from class timetables
           const teacherMap = buildTeacherTimetablesFromClass(

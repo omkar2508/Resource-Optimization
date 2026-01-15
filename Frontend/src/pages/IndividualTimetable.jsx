@@ -18,7 +18,7 @@ export default function IndividualTeacherTimetable() {
   useEffect(() => {
     const fetchAndBuild = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/timetable/all");
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/timetable/all`);
 
         if (res.data.success && userData?.name) {
           const teacherName = userData.name.trim().toLowerCase();

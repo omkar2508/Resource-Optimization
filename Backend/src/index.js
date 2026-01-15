@@ -39,7 +39,7 @@ console.log("Loaded admin:", process.env.ADMIN_EMAIL);
 // ----------------------------------------------
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:8080", "http://10.26.55.149:8080"],
+    origin: ["http://localhost:5173", "http://localhost:8080", "http://10.25.4.229:8080"],
     credentials: true,
   })
 );
@@ -55,7 +55,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "none",
       secure: false,
       maxAge: 1000 * 60 * 60 * 4, // 4 hours
     },
