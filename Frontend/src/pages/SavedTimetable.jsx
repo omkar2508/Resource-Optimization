@@ -12,7 +12,7 @@ export default function SavedTimetable() {
 
   const fetchTimetables = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/timetable/all");
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/timetable/all`);
       if (res.data.success) {
         setTimetables(res.data.timetables);
       }
@@ -66,7 +66,7 @@ export default function SavedTimetable() {
   const handleDeleteTimetable = async (id) => {
     try {
       const { data } = await axios.delete(
-        `http://localhost:5000/api/timetable/delete/${id}`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/timetable/delete/${id}`,
         { withCredentials: true }
       );
 

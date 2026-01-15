@@ -40,7 +40,7 @@ export default function StudentTimetable() {
 
   const fetchTimetables = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/timetable/all");
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/timetable/all`);
 
       if (res.data.success) {
         let allData = res.data.timetables;

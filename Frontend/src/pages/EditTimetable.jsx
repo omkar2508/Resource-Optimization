@@ -136,7 +136,7 @@ export default function EditTimetable() {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/timetable/save",
+        `${import.meta.env.VITE_BACKEND_URL}/api/timetable/save`,
         payload
       );
       if (res?.data?.success) {

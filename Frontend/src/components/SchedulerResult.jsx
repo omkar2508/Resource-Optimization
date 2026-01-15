@@ -117,7 +117,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
   }
 
   try {
-    const res = await axios.post("http://localhost:5000/api/timetable/save", payload);
+    const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/timetable/save`, payload);
     
     console.log("📥 Server response:", res.data);
     
