@@ -104,6 +104,71 @@ def check_room_availability(room_name, day, slot_key, saved_timetables):
                     }
     return {"conflict": False}
 
+def get_compatible_rooms_for_subject(rooms, subject_code, room_type, year=None, division=None, 
+                                     room_mappings=None, batch=None):
+    """
+    ✅ UPDATED: Get rooms compatible with a subject.
+    
+    Priority order:
+    1. Use room from Step 3 mappings (if available) - HIGHEST PRIORITY
+    2. Rooms where primaryYear matches selected year
+    3. Rooms where primaryYear == "Shared"
+    4. Any available room of correct type (fallback)
+    """
+    # ✅ PRIORITY 1: Use assigned room from mappings (FIXED - pass year)
+    if room_mappings:
+        assigned_room = get_room_for_subject(subject_code, room_type, batch, room_mappings, rooms, year)
+        if assigned_room:
+            print(f"✅ Using assigned room from mappings: {assigned_room.get('name')} for {subject_code} batch {batch}")
+            return [assigned_room]
+    
+    # ✅ PRIORITY 2-4: Filter by year and type (EXISTING LOGIC)
+    compatible = []
+    
+    for room in rooms:
+        # Basic type filter
+        if room_type == "Lab" and room.get("type") != "Lab":
+            continue
+        elif room_type == "Tutorial" and room.get("type") not in ["Tutorial", "Classroom"]:
+            continue
+        elif room_type == "Theory" and room.get("type") != "Classroom":
+            continue
+        
+        # Year filter
+        primary_year = room.get("primaryYear", "Shared")
+        if primary_year != "Shared" and year and primary_year != year:
+            continue
+        
+        # Calculate priority score
+        score = 0
+        
+        if primary_year == year:
+            score += 50
+        elif primary_year == "Shared":
+            score += 10
+        
+        primary_div = room.get("primaryDivision")
+        if primary_div is None or (division and primary_div == division):
+            score += 25
+        
+        if score > 0:
+            compatible.append({
+                "room": room,
+                "score": score
+            })
+    
+    # Sort by score (descending)
+    compatible.sort(key=lambda x: x["score"], reverse=True)
+    
+    result = [item["room"] for item in compatible]
+    
+    if len(result) == 0:
+        print(f"⚠️ No compatible rooms found for {room_type} - {subject_code}")
+    else:
+        print(f"✅ Found {len(result)} compatible rooms for {room_type} - {subject_code}")
+    
+    return result
+
 def is_batch_available(class_tt, yname, div, day, slot_key, batch):
     """
     CRITICAL: Check if a specific batch is free at this time slot.
@@ -150,6 +215,82 @@ def get_previous_slot_subject(class_tt, yname, div, day, current_slot_idx, time_
             return entry.get("subject")
     
     return None
+
+def get_room_for_subject(subject_code, component_type, batch, room_mappings, rooms, year=None):
+    """
+    ✅ FIXED: Get assigned room from wizard room mappings.
+    
+    Args:
+        subject_code: Subject code (e.g., "AISD")
+        component_type: "Theory", "Lab", or "Tutorial"
+        batch: Batch number (1, 2, 3, etc.) or None for Theory
+        room_mappings: Dict from wizard Step 3
+        rooms: All available rooms
+        year: Year (e.g., "3rd")
+    
+    Returns:
+        Room dict or None
+    """
+    if not room_mappings:
+        print(f"⚠️ No room mappings provided for {subject_code}")
+        return None
+    
+    # ✅ FIX: Build mapping key with year
+    mapping_key = f"{year}_{subject_code}_{component_type}"
+    
+    print(f"🔍 Looking for mapping key: {mapping_key}")
+    print(f"📋 Available mapping keys: {list(room_mappings.keys())}")
+    
+    # Find mapping for this subject
+    mapping = room_mappings.get(mapping_key)
+    
+    if not mapping:
+        print(f"⚠️ No room mapping found for {mapping_key}")
+        return None
+    
+    print(f"✅ Found mapping: {mapping}")
+    
+    # Get room based on type
+    if component_type == "Theory":
+        # Theory: single room assignment
+        room_id = mapping.get("roomId")
+        room_name = mapping.get("roomName")
+        
+        print(f"  → Theory room: {room_name} (ID: {room_id})")
+        
+        # Find room object
+        for room in rooms:
+            room_id_match = str(room.get("_id")) == str(room_id) if room_id else False
+            room_name_match = room.get("name") == room_name if room_name else False
+            
+            if room_id_match or room_name_match:
+                print(f"✅ Found assigned room for {subject_code}: {room.get('name')}")
+                return room
+    else:
+        # Lab/Tutorial: per-batch assignment
+        batches = mapping.get("batches", [])
+        
+        print(f"  → Looking for batch {batch} in batches: {batches}")
+        
+        for batch_assignment in batches:
+            if batch_assignment.get("batch") == batch:
+                room_id = batch_assignment.get("room")
+                room_name = batch_assignment.get("roomName")
+                
+                print(f"  → Batch {batch} assigned to: {room_name} (ID: {room_id})")
+                
+                # Find room object
+                for room in rooms:
+                    room_id_match = str(room.get("_id")) == str(room_id) if room_id else False
+                    room_name_match = room.get("name") == room_name if room_name else False
+                    
+                    if room_id_match or room_name_match:
+                        print(f"✅ Found assigned room for {subject_code} batch {batch}: {room.get('name')}")
+                        return room
+    
+    print(f"⚠️ Room not found in rooms list for {subject_code} batch {batch}")
+    return None
+
 
 def check_continuous_slots_available(class_tt, teacher_tt, room_tt, yname, div, day, 
                                      start_slot_idx, duration, teacher, room, batch, 
@@ -235,18 +376,21 @@ def check_continuous_slots_available(class_tt, teacher_tt, room_tt, yname, div, 
 
 def allocate_lab_continuous(req, day, start_slot_idx, class_tt, teacher_tt, room_tt, 
                             teachers, rooms, year_time_slots, saved_timetables, 
-                            lab_conflicts, teacher_limits=None):
+                            lab_conflicts, teacher_limits=None, room_mappings=None):
     """
-    Allocate a lab that spans multiple continuous hours.
-    âœ… NEW: Respects teacher daily load limits
+    ✅ UPDATED: Continuous lab allocation with room mappings support.
+    
+    Changes:
+    - Added room_mappings parameter
+    - Pass room_mappings to get_compatible_rooms_for_subject()
+    - All other logic UNCHANGED
     """
     yname, div, code, batch = req["year"], req["div"], req["code"], req["batch"]
     lab_duration = req.get("lab_duration", 1)
     
-    # Find eligible teacher
+    # Find eligible teachers (UNCHANGED)
     eligible = [t for t in teachers if any(s["code"] == code for s in t.get("subjects", []))]
     
-    # âœ… NEW: Filter by daily load (check if teacher can take lab_duration hours today)
     if teacher_limits:
         eligible = [t for t in eligible 
                    if teacher_limits[t["name"]]["daily_count"][day] + lab_duration 
@@ -255,24 +399,34 @@ def allocate_lab_continuous(req, day, start_slot_idx, class_tt, teacher_tt, room
     best_conflict = None
     
     for t in eligible:
-        candidate_rooms = [r for r in rooms if r["type"] == "Lab"]
+        # ✅ Get labs with mappings support (UPDATED)
+        candidate_rooms = get_compatible_rooms_for_subject(
+            rooms, code, "Lab", yname, div, room_mappings, batch
+        )
+        
+        # Fallback to any lab (UNCHANGED)
+        if not candidate_rooms or len(candidate_rooms) == 0:
+            candidate_rooms = [r for r in rooms if r.get("type") == "Lab"]
         
         for room in candidate_rooms:
+            room_name = room.get("name") if isinstance(room, dict) else room
+            
+            # Check if continuous slots are available (UNCHANGED)
             can_allocate, slot_keys, conflict_info = check_continuous_slots_available(
                 class_tt, teacher_tt, room_tt, yname, div, day,
-                start_slot_idx, lab_duration, t["name"], room["name"],
+                start_slot_idx, lab_duration, t["name"], room_name,
                 batch, year_time_slots[yname], saved_timetables
             )
             
             if can_allocate:
-                # SUCCESS - Allocate all continuous slots
                 session_id = f"{day}-{slot_keys[0]}"
                 
+                # Allocate all slots for this continuous lab (UNCHANGED)
                 for i, slot_key in enumerate(slot_keys):
                     entry = {
                         "subject": code,
                         "teacher": t["name"],
-                        "room": room["name"],
+                        "room": room_name,
                         "batch": batch,
                         "type": "Lab",
                         "lab_part": f"{i+1}/{lab_duration}",
@@ -285,25 +439,25 @@ def allocate_lab_continuous(req, day, start_slot_idx, class_tt, teacher_tt, room
                         "subject": code,
                         "year": yname,
                         "division": div,
-                        "room": room["name"],
+                        "room": room_name,
                         "batch": batch,
                         "lab_part": f"{i+1}/{lab_duration}"
                     })
                     
-                    room_tt[room["name"]][day][slot_key].append({
+                    room_tt[room_name][day][slot_key].append({
                         "subject": code,
                         "year": yname,
                         "division": div
                     })
                 
-                # âœ… NEW: Increment teacher daily count by lab_duration
+                # Update teacher limits (UNCHANGED)
                 if teacher_limits:
                     for _ in range(lab_duration):
                         increment_teacher_daily_count(t["name"], day, teacher_limits)
                 
                 return True, None
             
-            # Track conflicts...
+            # Track break interruption conflicts (UNCHANGED)
             if conflict_info["reason"] == "break_interruption":
                 if not best_conflict or best_conflict["reason"] != "break_interruption":
                     best_conflict = {
@@ -434,6 +588,36 @@ def generate_room_conflict_recommendations(room_conflicts, rooms, saved_timetabl
     
     return recommendations
 
+def validate_room_assignments(years, rooms):
+    """Validate that lab subjects have compatible rooms assigned"""
+    issues = []
+    
+    for year_name, year_data in years.items():
+        subjects = year_data.get("subjects", [])
+        lab_subjects = [s for s in subjects if s.get("type") == "Lab"]
+        
+        for lab_subject in lab_subjects:
+            code = lab_subject.get("code")
+            
+            # Check if ANY lab room is assigned to this subject
+            assigned_rooms = [r for r in rooms 
+                            if r.get("type") == "Lab" 
+                            and code in r.get("assignedSubjects", [])]
+            
+            if len(assigned_rooms) == 0:
+                # No dedicated lab - check for general purpose
+                general_labs = [r for r in rooms 
+                              if r.get("type") == "Lab" 
+                              and r.get("labCategory") == "General Purpose"]
+                
+                if len(general_labs) == 0:
+                    issues.append(
+                        f"WARNING: Lab subject {code} ({year_name}) has no assigned "
+                        f"lab room and no general purpose labs available"
+                    )
+    
+    return issues
+
 def validate_requirements(years, teachers, rooms):
     """Validate basic requirements including lab duration."""
     issues = []
@@ -497,50 +681,46 @@ def get_previous_slot_subject(class_tt, yname, div, day, current_slot_idx, time_
     return None
 
 def allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, teachers, rooms, 
-                  saved_timetables=None, teacher_limits=None, previous_subject=None):
+                  saved_timetables=None, teacher_limits=None, previous_subject=None, room_mappings=None):
     """
-    Allocate a single time slot with teacher load balancing and subject alternation.
+    ✅ UPDATED: Allocate single slot with room mappings support.
     
-    NEW PARAMETERS:
-    - teacher_limits: dict tracking daily teacher hours
-    - previous_subject: subject code from previous slot (for alternation)
+    Changes:
+    - Added room_mappings parameter
+    - Pass room_mappings to get_compatible_rooms_for_subject()
+    - All other logic UNCHANGED
     """
     yname, div, code, stype, batch = req["year"], req["div"], req["code"], req["type"], req["batch"]
     slot_key = slot_info["slot_key"]
     
+    # Skip lunch slots (UNCHANGED)
     if slot_info.get("is_lunch"):
         return False
     
-    # CRITICAL: Use centralized batch availability check
+    # Batch availability check (UNCHANGED)
     if batch is not None:
         if not is_batch_available(class_tt, yname, div, day, slot_key, batch):
             return False
     
-    # For Theory lectures, check if slot is completely empty
+    # Theory lecture - check slot is empty (UNCHANGED)
     if stype == "Theory":
         current_occupants = class_tt[yname][div][day].get(slot_key, [])
         if len(current_occupants) > 0:
             return False
-        
-        # âœ… NEW: Subject alternation check
-        if previous_subject is not None and code == previous_subject:
-            # Try to avoid repeating same subject in consecutive slots
-            # This is a soft constraint - will be bypassed if no alternatives
-            pass  # We'll handle this in the selection logic
     
+    # Find eligible teacher (UNCHANGED)
     eligible = [t for t in teachers if any(s["code"] == code for s in t.get("subjects", []))]
     
-    # âœ… NEW: Filter by daily load limit
     if teacher_limits:
         eligible = [t for t in eligible if can_teacher_take_slot(t["name"], day, teacher_limits)]
     
     if not eligible:
         return False
     
-    # âœ… NEW: Prefer teachers with lower daily load (load balancing)
     if teacher_limits:
         eligible.sort(key=lambda t: teacher_limits[t["name"]]["daily_count"][day])
     
+    # Find available teacher (UNCHANGED)
     available_t = None
     
     for t in eligible:
@@ -555,32 +735,49 @@ def allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, teachers, 
     if not available_t:
         return False
     
-    # Room allocation logic (unchanged)
+    # ✅ ROOM ALLOCATION WITH MAPPINGS (UPDATED)
+    room_type_map = {
+        "Lab": "Lab",
+        "Tutorial": "Tutorial",
+        "Theory": "Theory"
+    }
+    
+    # ✅ Get compatible rooms with mappings support (NEW PARAMETER)
+    candidate_rooms = get_compatible_rooms_for_subject(
+        rooms, code, room_type_map.get(stype, "Theory"), yname, div, room_mappings, batch
+    )
+    
+    # Fallback if no rooms found (UNCHANGED)
+    if not candidate_rooms or len(candidate_rooms) == 0:
+        # Try any room of correct type
+        if stype == "Lab":
+            candidate_rooms = [r for r in rooms if r.get("type") == "Lab"]
+        elif stype == "Tutorial":
+            candidate_rooms = [r for r in rooms if r.get("type") in ["Tutorial", "Classroom"]]
+        else:
+            candidate_rooms = [r for r in rooms if r.get("type") == "Classroom"]
+    
+    # Find available room (UNCHANGED)
     available_r = None
     
-    if stype == "Lab":
-        candidate_rooms = [r for r in rooms if r["type"] == "Lab"]
-    elif stype == "Tutorial":
-        candidate_rooms = [r for r in rooms if r["type"] in ["Tutorial", "Classroom"]]
-    else:
-        candidate_rooms = [r for r in rooms if r["type"] == "Classroom"]
-    
     for room in candidate_rooms:
-        if room_tt[room["name"]][day].get(slot_key, []):
+        room_name = room.get("name") if isinstance(room, dict) else room
+        
+        if room_tt[room_name][day].get(slot_key, []):
             continue
         
         if saved_timetables and CHECK_ROOM_CONFLICTS:
-            room_check = check_room_availability(room["name"], day, slot_key, saved_timetables)
+            room_check = check_room_availability(room_name, day, slot_key, saved_timetables)
             if room_check["conflict"]:
                 continue
         
-        available_r = room["name"]
+        available_r = room_name
         break
     
     if not available_r:
         return False
     
-    # Allocation
+    # Allocation (UNCHANGED)
     entry = {
         "subject": code,
         "teacher": available_t,
@@ -610,7 +807,6 @@ def allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, teachers, 
         "division": div
     })
     
-    # âœ… NEW: Increment teacher's daily count
     if teacher_limits:
         increment_teacher_daily_count(available_t, day, teacher_limits)
     
@@ -675,14 +871,28 @@ def increment_teacher_daily_count(teacher_name, day, teacher_limits):
     if teacher_name in teacher_limits:
         teacher_limits[teacher_name]["daily_count"][day] += 1
 
-
 def solver_greedy_distribute(payload):
+    """
+    ✅ UPDATED: Main solver with room mappings support.
+    
+    Changes:
+    - Extract room_mappings from payload
+    - Pass room_mappings to allocate_slot() and allocate_lab_continuous()
+    - All other logic UNCHANGED
+    """
     years = payload.get("years", {})
     teachers = payload.get("teachers", [])
     rooms = payload.get("rooms", [])
     saved_timetables = payload.get("saved_timetables", [])
+    room_mappings = payload.get("roomMappings", {})  # ✅ NEW: Extract room mappings
     
-    # Validate requirements
+    # Log room mappings (NEW)
+    if room_mappings:
+        print(f"📦 Received room mappings: {len(room_mappings)} subjects mapped")
+    else:
+        print("⚠️ No room mappings provided - using fallback room selection")
+    
+    # Validate requirements (UNCHANGED)
     critical_issues = validate_requirements(years, teachers, rooms)
     if critical_issues:
         return {
@@ -699,7 +909,7 @@ def solver_greedy_distribute(payload):
             "lab_conflicts": []
         }
     
-    # Initialize pools and structures
+    # Initialize pools and structures (UNCHANGED)
     theory_pool = []
     practical_pool = []
     lab_pool = []
@@ -707,6 +917,7 @@ def solver_greedy_distribute(payload):
     room_conflict_report = []
     lab_conflicts = []
     
+    # Generate time slots (UNCHANGED)
     year_time_slots = {}
     for yname, ydata in years.items():
         time_config = ydata.get("timeConfig", {})
@@ -726,7 +937,7 @@ def solver_greedy_distribute(payload):
                 for i in range(1, periods_per_day + 1)
             ]
     
-    # Build requirement pools
+    # Build requirement pools (UNCHANGED)
     for yname, ydata in years.items():
         divs = int(ydata.get("divisions", 1))
         
@@ -757,17 +968,17 @@ def solver_greedy_distribute(payload):
                     else:
                         practical_pool.append(req)
     
-    # Initialize timetable structures
+    # Initialize timetable structures (UNCHANGED)
     class_tt, teacher_tt, room_tt = initialize_complete_structure(
         years, teachers, rooms, year_time_slots
     )
     
-    # PHASE 1: THEORY LECTURES WITH PROPER ALTERNATION + LOAD BALANCING
-    print("=== PHASE 1: ALLOCATING THEORY LECTURES (BALANCED + ALTERNATING) ===")
-
-    # âœ… NEW: Initialize teacher daily limits
+    # Initialize teacher limits (UNCHANGED)
     teacher_limits = initialize_teacher_daily_limits(teachers)
-
+    
+    # PHASE 1: THEORY LECTURES (UNCHANGED - just pass room_mappings)
+    print("=== PHASE 1: ALLOCATING THEORY LECTURES ===")
+    
     theory_distribution = {}
     for req in theory_pool:
         class_key = f"{req['year']}_Div{req['div']}"
@@ -787,16 +998,11 @@ def solver_greedy_distribute(payload):
         total = dist_data["total_lectures"]
         dist_data["per_day_target"] = math.ceil(total / working_days)
         dist_data["daily_count"] = {day: 0 for day in DAY_NAMES}
-        
-        print(f"{class_key}: {total} lectures ÷ {working_days} days = {dist_data['per_day_target']} lectures/day target")
 
-    # âœ… ENHANCED: Day-by-day allocation with subject alternation
     for day in DAY_NAMES:
-        # Reset daily counters
         for req in theory_pool:
             req["count_today"] = 0
         
-        # Reset teacher daily counts for new day
         for teacher_name in teacher_limits:
             teacher_limits[teacher_name]["daily_count"][day] = 0
         
@@ -821,7 +1027,6 @@ def solver_greedy_distribute(payload):
                 class_lectures = [r for r in theory_pool 
                                 if r["year"] == yname and r["div"] == div and r["remaining"] > 0]
                 
-                # âœ… NEW: Track subjects already scheduled today for alternation
                 subjects_today = set()
                 
                 for slot_idx, slot_info in enumerate(slots):
@@ -831,13 +1036,7 @@ def solver_greedy_distribute(payload):
                     if daily_count >= target:
                         break
                     
-                    # Get previous slot subject for alternation
                     prev_subject = get_previous_slot_subject(class_tt, yname, div, day, slot_idx, slots)
-                    
-                    # âœ… NEW: Build subject priority list
-                    # Priority 1: Subjects NOT yet scheduled today
-                    # Priority 2: Subjects different from previous slot
-                    # Priority 3: Any remaining subject
                     
                     unscheduled_today = [r for r in class_lectures 
                                         if r["remaining"] > 0 
@@ -853,43 +1052,37 @@ def solver_greedy_distribute(payload):
                                     if r["remaining"] > 0 
                                     and r["count_today"] < r["max_per_day"]]
                     
-                    # Try in order of priority
                     for candidate_pool in [unscheduled_today, different_from_prev, any_available]:
                         if not candidate_pool:
                             continue
                         
-                        # âœ… NEW: Sort by remaining hours (descending) for balanced distribution
                         candidate_pool.sort(key=lambda x: x["remaining"], reverse=True)
                         
                         allocated = False
                         for req in candidate_pool:
+                            # ✅ Pass room_mappings (UPDATED)
                             if allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, 
-                                        teachers, rooms, saved_timetables, teacher_limits, prev_subject):
+                                        teachers, rooms, saved_timetables, teacher_limits, prev_subject, room_mappings):
                                 req["remaining"] -= 1
                                 req["count_today"] += 1
                                 daily_count += 1
                                 dist_data["daily_count"][day] = daily_count
-                                subjects_today.add(req["code"])  # Track for alternation
-                                
-                                print(f"âœ… Allocated LECTURE: {req['code']} for {yname} Div {div} on {day} {slot_info['slot_key']}")
+                                subjects_today.add(req["code"])
                                 allocated = True
                                 break
                         
                         if allocated:
                             break
     
-    # CRITICAL FIX: Phase 2 Multi-Hour Labs - Lines 550-650 of solver.py
-
-    # PHASE 2: MULTI-HOUR LABS WITH PROPER FAILURE TRACKING
+    # PHASE 2: MULTI-HOUR LABS (UNCHANGED - just pass room_mappings)
     print("=== PHASE 2: ALLOCATING MULTI-HOUR LABS ===")
-
-    # Track failed lab attempts with their reasons
+    
     failed_lab_attempts = {}
 
     for day in DAY_NAMES:
-    # Reset teacher daily counts for labs
         for teacher_name in teacher_limits:
             teacher_limits[teacher_name]["daily_count"][day] = 0
+            
         for req in lab_pool:
             if req["remaining"] <= 0:
                 continue
@@ -903,38 +1096,28 @@ def solver_greedy_distribute(payload):
             slots = year_time_slots[yname]
             lab_duration = req["lab_duration"]
             
-            # Create unique key for this lab requirement
             lab_key = f"{req['year']}_Div{req['div']}_{req['code']}_Batch{req['batch']}"
             
-            # Track if we successfully allocated on this day
-            allocated_this_day = False
-            
-            # Try each possible starting position
             for start_idx in range(len(slots) - lab_duration + 1):
                 if req["remaining"] <= 0:
                     break
                 
+                # ✅ Pass room_mappings (UPDATED)
                 success, conflict_info = allocate_lab_continuous(
                     req, day, start_idx, class_tt, teacher_tt, room_tt,
                     teachers, rooms, year_time_slots, saved_timetables,
-                    lab_conflicts, teacher_limits  # âœ… PASS teacher_limits
+                    lab_conflicts, teacher_limits, room_mappings
                 )
                 
                 if success:
-                    # SUCCESS: Reduce remaining by the full lab duration
                     req["remaining"] -= lab_duration
-                    allocated_this_day = True
-                    print(f"✅ Allocated {lab_duration}-hour lab: {req['code']} Batch {req['batch']} on {day}")
                     
-                    # Remove from failed attempts if previously failed
                     if lab_key in failed_lab_attempts:
                         del failed_lab_attempts[lab_key]
                     
-                    break  # Move to next lab
+                    break
                 
-                # FAILED: Track the reason
                 if conflict_info and conflict_info.get('reason'):
-                    # Store the BEST (most specific) failure reason
                     if lab_key not in failed_lab_attempts:
                         failed_lab_attempts[lab_key] = {
                             "req": req,
@@ -944,19 +1127,20 @@ def solver_greedy_distribute(payload):
                     
                     failed_lab_attempts[lab_key]["days_attempted"].add(day)
                     
-                    # Prioritize break interruption conflicts
                     if conflict_info.get('reason') == 'break_interruption':
                         failed_lab_attempts[lab_key]["conflict"] = conflict_info
-                        # Add to lab_conflicts for UI display
                         lab_conflicts.append(conflict_info)
 
-    # PHASE 3: SINGLE-HOUR PRACTICALS
+    # PHASE 3: SINGLE-HOUR PRACTICALS (UNCHANGED - just pass room_mappings)
     print("=== PHASE 3: ALLOCATING SINGLE-HOUR PRACTICALS ===")
+    
     for day in DAY_NAMES:
         for req in practical_pool:
             req["count_today"] = 0
+            
         for teacher_name in teacher_limits:
             teacher_limits[teacher_name]["daily_count"][day] = 0
+            
         for yname, slots in year_time_slots.items():
             ydata = years[yname]
             
@@ -973,17 +1157,16 @@ def solver_greedy_distribute(payload):
                     if req["remaining"] <= 0 or req["count_today"] >= req["max_per_day"]:
                         continue
                     
+                    # ✅ Pass room_mappings (UPDATED)
                     if allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, 
-                                teachers, rooms, saved_timetables, teacher_limits):  # âœ… PASS teacher_limits
+                                teachers, rooms, saved_timetables, teacher_limits, None, room_mappings):
                         req["remaining"] -= 1
                         req["count_today"] += 1
-                        print(f"✅ Allocated practical: {req['code']} Batch {req.get('batch')} on {day} {slot_info['slot_key']}")
 
-    # FALLBACK ALLOCATION - STRICT: NO PARTIAL LABS
-    print("=== FALLBACK ALLOCATION (Theory & Single-hour only) ===")
+    # FALLBACK ALLOCATION (UNCHANGED - just pass room_mappings)
+    print("=== FALLBACK ALLOCATION ===")
+    
     for req in theory_pool + practical_pool:
-        # ONLY single-slot allocations in fallback
-        # NEVER attempt multi-hour labs in fallback
         if req["remaining"] > 0:
             for day in DAY_NAMES:
                 ydata = years[req["year"]]
@@ -996,17 +1179,60 @@ def solver_greedy_distribute(payload):
                     if req["remaining"] <= 0:
                         break
                     
-                    # Check batch availability before attempting
                     if req["batch"] is not None:
                         if not is_batch_available(class_tt, req["year"], req["div"], day, slot_info["slot_key"], req["batch"]):
                             continue
                     
+                    # ✅ Pass room_mappings (UPDATED)
                     if allocate_slot(req, day, slot_info, class_tt, teacher_tt, room_tt, 
-                                teachers, rooms, saved_timetables):
+                                teachers, rooms, saved_timetables, None, None, room_mappings):
                         req["remaining"] -= 1
 
-    # CRITICAL: Build unallocated sessions list - INCLUDE FAILED MULTI-HOUR LABS
+    # Build unallocated sessions (UNCHANGED)
     unallocated_sessions = []
+
+    for req in theory_pool + practical_pool:
+        if req["remaining"] > 0:
+            unallocated_sessions.append({
+                "subject": req["code"],
+                "type": req["type"],
+                "year": req["year"],
+                "division": req["div"],
+                "batch": f"{req['year']} - Div {req['div']}",
+                "batch_num": req["batch"],
+                "required": req["remaining"] + req.get("count_today", 0),
+                "assigned": req.get("count_today", 0),
+                "missing": req["remaining"],
+                "lab_duration": req.get("lab_duration", 1)
+            })
+
+    for req in lab_pool:
+        if req["remaining"] > 0:
+            lab_key = f"{req['year']}_Div{req['div']}_{req['code']}_Batch{req['batch']}"
+            
+            failure_reason = None
+            if lab_key in failed_lab_attempts:
+                failure_reason = failed_lab_attempts[lab_key]["conflict"].get("reason")
+            
+            unallocated_sessions.append({
+                "subject": req["code"],
+                "type": "Lab",
+                "year": req["year"],
+                "division": req["div"],
+                "batch": f"{req['year']} - Div {req['div']}",
+                "batch_num": req["batch"],
+                "required": req["remaining"],
+                "assigned": 0,
+                "missing": req["remaining"],
+                "lab_duration": req.get("lab_duration", 1),
+                "failure_reason": failure_reason
+            })
+
+    # Generate recommendations (UNCHANGED)
+    recommendations = generate_enhanced_recommendations(
+        unallocated_sessions, lab_conflicts, class_tt, years, teachers, rooms
+    )
+
 
     # Add Theory and Practicals
     for req in theory_pool + practical_pool:

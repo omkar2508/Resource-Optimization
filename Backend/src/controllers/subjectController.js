@@ -48,6 +48,16 @@ export const addSubject = async (req, res) => {
   }
 };
 
+// Get ALL subjects (no filter)
+export const getAllSubjects = async (req, res) => {
+  try {
+    const subjects = await subjectModel.find({}).sort({ year: 1, semester: 1, code: 1 });
+    res.json({ success: true, subjects });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getSubjectsByFilter = async (req, res) => {
   try {
     const { year, semester } = req.query;

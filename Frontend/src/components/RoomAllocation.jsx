@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; // Added useEffect import
+import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useAppContext } from "../context/AppContext";
 
@@ -10,20 +10,46 @@ export default function RoomAllocation({
   onGenerate,
 }) {
   const { axios } = useAppContext();
-  const [dbRooms, setDbRooms] = useState([]); // Database rooms
+  
+  // State management
+  const [dbRooms, setDbRooms] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState("");
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [assignmentType, setAssignmentType] = useState("division");
+  const [selectedAssignments, setSelectedAssignments] = useState([]);
+  const [filterType, setFilterType] = useState("all");
 
-  // State for manual overrides if needed (referenced in your UI)
-  const [roomType, setRoomType] = useState("Classroom");
-  const [capacity, setCapacity] = useState(60);
-
-  // Fetch rooms from database on component mount
+  // ✅ FIX: Fetch rooms filtered by selected years
   useEffect(() => {
     const fetchDbRooms = async () => {
       try {
         const { data } = await axios.get("/api/rooms/all");
         if (data.success) {
-          setDbRooms(data.rooms);
+          // Get all selected years from yearData
+          const selectedYears = Object.keys(yearData);
+          
+          console.log("Selected years:", selectedYears);
+          console.log("All rooms from DB:", data.rooms);
+          
+          // ✅ FIX: Filter rooms based on selected years
+          const availableRooms = data.rooms.filter(room => {
+            // Include if room is Shared
+            if (room.primaryYear === "Shared") {
+              console.log(`✅ Including shared room: ${room.name}`);
+              return true;
+            }
+            // Include if room's primaryYear matches any selected year
+            const yearMatch = selectedYears.includes(room.primaryYear);
+            if (yearMatch) {
+              console.log(`✅ Including year-specific room: ${room.name} (${room.primaryYear})`);
+            } else {
+              console.log(`❌ Excluding room: ${room.name} (${room.primaryYear}) - not in selected years`);
+            }
+            return yearMatch;
+          });
+          
+          console.log(`Filtered rooms: ${availableRooms.length}/${data.rooms.length}`);
+          setDbRooms(availableRooms);
         }
       } catch (err) {
         console.error("Failed to fetch rooms:", err);
@@ -31,166 +57,507 @@ export default function RoomAllocation({
       }
     };
     fetchDbRooms();
-  }, [axios]);
+  }, [axios, yearData]);
 
-  const addRoom = () => {
-    const roomObj = dbRooms.find((r) => r._id === selectedRoomId);
-    if (!roomObj) return toast.error("Select a room from the list");
+  // When room is selected from dropdown
+  useEffect(() => {
+    if (selectedRoomId) {
+      const room = dbRooms.find((r) => r._id === selectedRoomId);
+      setSelectedRoom(room);
+      setSelectedAssignments([]);
+      
+      // Auto-determine assignment type based on room type
+      if (room?.type === "Classroom") {
+        setAssignmentType("division");
+      } else {
+        setAssignmentType("subject");
+      }
+    } else {
+      setSelectedRoom(null);
+      setSelectedAssignments([]);
+    }
+  }, [selectedRoomId, dbRooms]);
 
-    // Check for duplicates in the current selection
-    if (rooms.find((r) => r.name === roomObj.name)) {
-      return toast.error("Room already added to this schedule");
+  // Get all divisions across all years
+  const getAllDivisions = () => {
+    const divisions = [];
+    Object.keys(yearData).forEach(year => {
+      const divCount = yearData[year].divisions || 1;
+      for (let i = 1; i <= divCount; i++) {
+        divisions.push({ 
+          year, 
+          division: i, 
+          label: `${year} - Division ${i}` 
+        });
+      }
+    });
+    return divisions;
+  };
+
+  // Get all subjects that match room type
+  const getRelevantSubjects = () => {
+    const subjects = [];
+    
+    if (!selectedRoom) return subjects;
+
+    Object.keys(yearData).forEach(year => {
+      const yearSubjects = yearData[year].subjects || [];
+      
+      yearSubjects.forEach(subject => {
+        const shouldInclude = 
+          (selectedRoom.type === "Lab" && subject.type === "Lab") ||
+          (selectedRoom.type === "Tutorial" && subject.type === "Tutorial") ||
+          (selectedRoom.type === "Classroom" && subject.type === "Theory");
+        
+        if (shouldInclude) {
+          if (selectedRoom.type === "Lab" || selectedRoom.type === "Tutorial") {
+            subjects.push({
+              year,
+              code: subject.code,
+              name: subject.name,
+              type: subject.type,
+              totalBatches: subject.batches || 1,
+              labDuration: subject.labDuration || 1,
+              label: `${year} - ${subject.code} (${subject.name}) - ${subject.batches || 1} batch${subject.batches > 1 ? 'es' : ''}`
+            });
+          } else {
+            subjects.push({
+              year,
+              code: subject.code,
+              name: subject.name,
+              type: subject.type,
+              batch: null,
+              labDuration: subject.labDuration || 1,
+              label: `${year} - ${subject.code} (${subject.name})`
+            });
+          }
+        }
+      });
+    });
+    
+    return subjects;
+  };
+
+  // Toggle assignment selection
+  const toggleAssignment = (item) => {
+    setSelectedAssignments(prev => {
+      const itemKey = assignmentType === "division" 
+        ? `${item.year}_Div${item.division}`
+        : `${item.year}_${item.code}`;
+      
+      const exists = prev.find(a => {
+        const aKey = assignmentType === "division"
+          ? `${a.year}_Div${a.division}`
+          : `${a.year}_${a.code}`;
+        return aKey === itemKey;
+      });
+
+      if (exists) {
+        return prev.filter(a => {
+          const aKey = assignmentType === "division"
+            ? `${a.year}_Div${a.division}`
+            : `${a.year}_${a.code}`;
+          return aKey !== itemKey;
+        });
+      } else {
+        return [...prev, item];
+      }
+    });
+  };
+
+  // Select ALL subjects
+  const selectAllSubjects = () => {
+    if (assignmentType === "subject") {
+      setSelectedAssignments([...subjects]);
+      toast.success(`Selected all ${subjects.length} subjects`);
+    } else {
+      setSelectedAssignments([...divisions]);
+      toast.success(`Selected all ${divisions.length} divisions`);
+    }
+  };
+
+  // Deselect all
+  const deselectAll = () => {
+    setSelectedAssignments([]);
+    toast.info("Cleared all selections");
+  };
+
+  // Add room with assignments
+  const addRoomWithAssignments = () => {
+    if (!selectedRoom) {
+      return toast.error("Please select a room");
     }
 
-    // Add room to the list. We include properties from the DB room
-    // but keep your UI structure (using 'id' for removal logic)
-    setRooms([
-      ...rooms,
-      {
-        ...roomObj,
-        id: roomObj._id,
-      },
-    ]);
+    if (selectedAssignments.length === 0) {
+      return toast.error("Please select at least one assignment");
+    }
 
+    const existingRoom = rooms.find(r => r._id === selectedRoom._id);
+    if (existingRoom) {
+      return toast.error(`${selectedRoom.name} is already assigned`);
+    }
+
+    const newRoom = {
+      ...selectedRoom,
+      id: selectedRoom._id,
+      assignments: selectedAssignments,
+      assignmentType
+    };
+
+    setRooms([...rooms, newRoom]);
+    toast.success(`${selectedRoom.name} added with ${selectedAssignments.length} assignment(s)`);
+    
+    // Reset
     setSelectedRoomId("");
-    toast.success("Room added to selection");
+    setSelectedRoom(null);
+    setSelectedAssignments([]);
   };
 
+  // Remove room assignment
   const removeRoom = (id) => {
-    // if (!window.confirm("Are you sure you want to remove this room?")) return;
     toast(
-          ({ closeToast }) => (
-            <div>
-              <p className="font-medium mb-2">
-                Are you sure you want to remove this room?
-              </p>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={closeToast}
-                  className="px-3 py-1 text-sm border rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    setRooms(rooms.filter((r) => r.id !== id));
-                    toast.success("Room removed successfully");
-                    closeToast();
-                  }}
-                  className="px-3 py-1 text-sm bg-red-600 text-white rounded"
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          ),
-          {
-            position: "top-center",
-            autoClose: false,
-            closeOnClick: false,
-            draggable: false,
-          }
-        );
+      ({ closeToast }) => (
+        <div>
+          <p className="font-medium mb-2">Remove this room assignment?</p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={closeToast}
+              className="px-3 py-1 text-sm border rounded hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setRooms(rooms.filter((r) => r.id !== id));
+                toast.success("Room removed");
+                closeToast();
+              }}
+              className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      ),
+      { position: "top-center", autoClose: false, closeOnClick: false }
+    );
   };
+
+  // Get filtered rooms for dropdown
+  const getFilteredRooms = () => {
+    let filtered = dbRooms.filter(r => !rooms.find(assigned => assigned._id === r._id));
+    
+    if (filterType !== "all") {
+      filtered = filtered.filter(r => r.type === filterType);
+    }
+    
+    return filtered;
+  };
+
+  const divisions = getAllDivisions();
+  const subjects = getRelevantSubjects();
+  const filteredRooms = getFilteredRooms();
 
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-gray-100 animate-fadeIn">
-      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-        <span>🏫</span>
-        <span>Room Management</span>
+    <div className="bg-white/90 backdrop-blur-md rounded-2xl p-8 shadow-xl border border-gray-100">
+      <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+        <span>Room Assignment</span>
       </h2>
 
-      <div className="mb-6 sm:mb-8 rounded-lg sm:rounded-xl md:rounded-2xl border border-blue-200 bg-blue-50/40 p-4 sm:p-5 md:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-4 items-end">
-          {/* Select Room */}
-          <div className="sm:col-span-9 md:col-span-10">
-            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
-              Room Name
-            </label>
-
-            <select
-              value={selectedRoomId}
-              onChange={(e) => setSelectedRoomId(e.target.value)}
-              className={`w-full h-10 sm:h-11 px-3 sm:px-4 text-sm sm:text-base rounded-lg sm:rounded-xl border border-gray-300 bg-white
-          focus:outline-none focus:ring-2 focus:ring-blue-500
-          focus:border-blue-500
-          ${!selectedRoomId ? "text-gray-400" : "text-gray-800"}
-        `}
-            >
-              {/* Placeholder / delimiter */}
-              <option value="" disabled>
-                <span className="hidden sm:inline">Select ClassRooms | Labs | Tutorials With Capacities</span>
-                <span className="sm:hidden">Select Room</span>
-              </option>
-
-              {dbRooms.map((r) => (
-                <option key={r._id} value={r._id}>
-                  {r.name} ({r.type}) - Cap: {r.capacity}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Add Room Button */}
-          <div className="sm:col-span-3 md:col-span-2">
-            <button
-              onClick={addRoom}
-              className="w-full h-10 sm:h-11 rounded-lg sm:rounded-xl bg-blue-600 text-white font-semibold text-sm sm:text-base
-          hover:bg-blue-700 transition-all shadow-sm
-          disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
-              disabled={!selectedRoomId}
-            >
-              + Add Room
-            </button>
+      {/* Info Banner */}
+      <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+        <div className="flex items-start gap-3">
+          <div>
+            <p className="font-semibold text-blue-900 mb-1">How Room Assignment Works:</p>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>1. Select a room from the dropdown below</li>
+              <li>2. Choose what uses it: Divisions (for classrooms) or Subjects/Batches (for labs/tutorials)</li>
+              <li>3. Click "Add Assignment" to confirm</li>
+              <li>4. Repeat for all rooms, then generate timetable</li>
+            </ul>
           </div>
         </div>
       </div>
 
-      <div className="space-y-2 sm:space-y-3 mb-6 sm:mb-8">
-        {rooms.length === 0 ? (
-          <p className="text-center text-sm sm:text-base text-gray-400 py-8 sm:py-10 bg-gray-50 rounded-lg border border-dashed">
-            No rooms added. Please select rooms above.
-          </p>
-        ) : (
-          rooms.map((room) => (
-            <div
-              key={room.id}
-              className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 bg-white border rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-shadow"
+      {/* Room Selection Section */}
+      <div className="mb-8 rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-6">
+        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <span>Step 1: Select Room</span>
+        </h3>
+
+        {/* Filter Tabs */}
+        <div className="flex gap-2 mb-4">
+          {["all", "Classroom", "Lab", "Tutorial"].map(type => (
+            <button
+              key={type}
+              onClick={() => setFilterType(type)}
+              className={`px-4 py-2 rounded-lg font-semibold transition-all text-sm ${
+                filterType === type
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
             >
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1 sm:mb-0">
-                  <span className="font-bold text-base sm:text-lg text-gray-800">{room.name}</span>
-                  <span className="px-2 py-0.5 sm:py-1 bg-gray-100 rounded text-[10px] sm:text-xs uppercase font-bold text-gray-600 whitespace-nowrap">
-                    {room.type}
+              {type === "all" ? "All Rooms" : 
+               type === "Classroom" ? "Classrooms" :
+               type === "Lab" ? "Labs" : "Tutorials"}
+              {type !== "all" && ` (${dbRooms.filter(r => r.type === type && !rooms.find(a => a._id === r._id)).length})`}
+            </button>
+          ))}
+        </div>
+        
+        <select
+          value={selectedRoomId}
+          onChange={(e) => setSelectedRoomId(e.target.value)}
+          className="w-full h-12 px-4 text-base rounded-xl border-2 border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="">-- Select a Room to Assign --</option>
+          {filteredRooms.length === 0 ? (
+            <option disabled>No {filterType === "all" ? "" : filterType} rooms available</option>
+          ) : (
+            filteredRooms.map((r) => (
+              <option key={r._id} value={r._id}>
+                {r.name} ({r.type}) - Cap: {r.capacity}
+                {r.labCategory && ` - ${r.labCategory}`}
+                {r.primaryYear !== "Shared" && ` - ${r.primaryYear}`}
+              </option>
+            ))
+          )}
+        </select>
+
+        {/* Selected Room Details */}
+        {selectedRoom && (
+          <div className="mt-6 bg-white rounded-xl p-6 border-2 border-blue-300 animate-fadeIn">
+            <div className="flex items-center gap-3 mb-4">
+              <div>
+                <h4 className="text-2xl font-bold text-gray-800">{selectedRoom.name}</h4>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-600 uppercase">
+                    {selectedRoom.type}
                   </span>
+                  <span className="px-3 py-1 bg-blue-100 rounded-full text-xs font-bold text-blue-700">
+                    Capacity: {selectedRoom.capacity}
+                  </span>
+                  {selectedRoom.labCategory && (
+                    <span className="px-3 py-1 bg-purple-100 rounded-full text-xs font-bold text-purple-700">
+                      {selectedRoom.labCategory}
+                    </span>
+                  )}
+                  {selectedRoom.primaryYear !== "Shared" && (
+                    <span className="px-3 py-1 bg-green-100 rounded-full text-xs font-bold text-green-700">
+                      {selectedRoom.primaryYear}
+                    </span>
+                  )}
                 </div>
-                <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-0">Capacity: {room.capacity}</p>
               </div>
-              <button
-                onClick={() => removeRoom(room.id)}
-                className="w-full sm:w-auto px-4 sm:px-5 py-1.5 sm:py-2 text-red-600 hover:bg-red-50 hover:text-red-700 font-semibold rounded-lg transition-colors text-sm sm:text-base border border-red-200 sm:border-0"
-              >
-                Remove
-              </button>
             </div>
-          ))
+
+            {/* Step 2: Assignment Type */}
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <span>Step 2: What Uses This Room?</span>
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAssignmentType("division")}
+                  className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                    assignmentType === "division"
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  Assign to Divisions
+                  <p className="text-xs mt-1 opacity-80">Whole classes use this room</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAssignmentType("subject")}
+                  className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                    assignmentType === "subject"
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  Assign to Subjects
+                  <p className="text-xs mt-1 opacity-80">Specific labs/tutorials use this</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Step 3: Select Assignments */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <span>Step 3: Select {assignmentType === "division" ? "Divisions" : "Subjects"}</span>
+                </h3>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={selectAllSubjects}
+                    className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 transition-colors"
+                  >
+                    Select All
+                  </button>
+                  {selectedAssignments.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={deselectAll}
+                      className="px-3 py-1 bg-gray-500 text-white rounded-lg text-xs font-semibold hover:bg-gray-600 transition-colors"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              <div className="max-h-64 overflow-y-auto bg-gray-50 rounded-lg p-4 space-y-2">
+                {assignmentType === "division" ? (
+                  divisions.length > 0 ? (
+                    divisions.map((div, idx) => (
+                      <label
+                        key={idx}
+                        className="flex items-center gap-3 p-3 bg-white rounded-lg border hover:bg-blue-50 cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedAssignments.some(
+                            a => a.year === div.year && a.division === div.division
+                          )}
+                          onChange={() => toggleAssignment(div)}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className="font-medium text-gray-800">{div.label}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-center text-gray-500 py-4">No divisions available</p>
+                  )
+                ) : (
+                  subjects.length > 0 ? (
+                    subjects.map((subj, idx) => (
+                      <label
+                        key={idx}
+                        className="flex items-center gap-3 p-3 bg-white rounded-lg border hover:bg-blue-50 cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedAssignments.some(
+                            a => a.code === subj.code && a.year === subj.year
+                          )}
+                          onChange={() => toggleAssignment(subj)}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="flex-1">
+                          <span className="font-medium text-gray-800">{subj.label}</span>
+                          {subj.labDuration > 1 && (
+                            <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-semibold">
+                              {subj.labDuration}h continuous
+                            </span>
+                          )}
+                        </div>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-center text-gray-500 py-4">
+                      No {selectedRoom.type === "Lab" ? "lab" : selectedRoom.type === "Tutorial" ? "tutorial" : "theory"} subjects available
+                    </p>
+                  )
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={addRoomWithAssignments}
+              disabled={selectedAssignments.length === 0}
+              className="w-full h-12 rounded-xl bg-gradient-to-r from-green-600 to-emerald-500 text-white font-bold shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              Add Assignment ({selectedAssignments.length} selected)
+            </button>
+          </div>
         )}
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4 mt-6 sm:mt-8 md:mt-10 pt-4 sm:pt-6 border-t">
+      {/* Assigned Rooms List */}
+      <div className="mb-8">
+        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <span>Assigned Rooms ({rooms.length})</span>
+        </h3>
+
+        {rooms.length === 0 ? (
+          <div className="text-center py-10 bg-gray-50 rounded-xl border-2 border-dashed">
+            <p className="text-gray-500 font-medium">No rooms assigned yet</p>
+            <p className="text-gray-400 text-sm mt-1">Select a room above to get started</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {rooms.map((room) => (
+              <div
+                key={room.id}
+                className="bg-white border-2 rounded-xl p-4 hover:shadow-lg transition-shadow"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h4 className="text-xl font-bold text-gray-800">{room.name}</h4>
+                      <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-600 uppercase">
+                        {room.type}
+                      </span>
+                    </div>
+                    
+                    <div className="ml-0">
+                      <p className="text-sm text-gray-600 mb-2">
+                        <strong>Assigned to:</strong>
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {room.assignments && room.assignments.map((assign, idx) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold"
+                          >
+                            {assign.label || `${assign.year} - ${assign.code || `Div ${assign.division}`}`}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => removeRoom(room.id)}
+                    className="px-4 py-2 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-colors border border-red-200"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Navigation Buttons */}
+      <div className="flex justify-between gap-4 pt-6 border-t">
         <button
           onClick={onBack}
-          className="w-full sm:w-auto px-5 sm:px-6 py-2 sm:py-2.5 border rounded-lg sm:rounded-xl hover:bg-gray-50 transition-colors text-sm sm:text-base font-semibold"
+          className="px-6 py-3 border-2 rounded-xl hover:bg-gray-50 transition-colors font-semibold"
         >
           Back
         </button>
         <button
           onClick={onGenerate}
-          className="w-full sm:w-auto px-6 sm:px-8 md:px-10 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-lg sm:rounded-xl font-bold shadow-lg hover:scale-105 transition-transform text-sm sm:text-base"
+          disabled={rooms.length === 0}
+          className="px-10 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
         >
-          Generate Timetable
+          Generate Timetable ({rooms.length} room assignments)
         </button>
       </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.5s ease-out; }
+      `}</style>
     </div>
   );
 }

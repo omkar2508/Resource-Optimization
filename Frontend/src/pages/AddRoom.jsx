@@ -9,16 +9,37 @@ const AddRoom = () => {
     name: "",
     type: "Classroom",
     capacity: 60,
+    labCategory: "",
+    primaryYear: "Shared",
   });
 
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const LAB_CATEGORIES = [
+    "Networking",
+    "Linux",
+    "IoT",
+    "Software Development",
+    "Hardware",
+    "Database",
+    "Cloud Computing",
+    "Cybersecurity",
+    "AI/ML",
+    "General Purpose"
+  ];
+
+  const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Shared"];
+
   const fetchRooms = async () => {
     try {
       const { data } = await axios.get("/api/rooms/all");
-      if (data.success) setRooms(data.rooms);
+      if (data.success) {
+        setRooms(data.rooms);
+        console.log("✅ Fetched rooms:", data.rooms);
+      }
     } catch (error) {
+      console.error("❌ Failed to fetch rooms:", error);
       toast.error("Failed to fetch rooms");
     }
   };
@@ -27,17 +48,41 @@ const AddRoom = () => {
     fetchRooms();
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    // Validation
+    if (!formData.name || !formData.type || !formData.capacity) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (formData.type === "Lab" && !formData.labCategory) {
+      toast.error("Please select a lab category for lab rooms");
+      return;
+    }
+
     try {
       setLoading(true);
+      console.log("📤 Sending room data:", formData);
+      
       const { data } = await axios.post("/api/rooms/add", formData);
+      
+      console.log("📥 Response:", data);
+      
       if (data.success) {
-        toast.success("Room added successfully");
+        toast.success("✅ Room added successfully");
         fetchRooms();
-        setFormData({ name: "", type: "Classroom", capacity: 60 });
+        setFormData({ 
+          name: "", 
+          type: "Classroom", 
+          capacity: 60,
+          labCategory: "",
+          primaryYear: "Shared"
+        });
+      } else {
+        toast.error(data.message || "Failed to add room");
       }
     } catch (err) {
+      console.error("❌ Error adding room:", err);
       toast.error(err.response?.data?.message || "Error adding room");
     } finally {
       setLoading(false);
@@ -54,7 +99,7 @@ const AddRoom = () => {
           <div className="flex justify-end gap-2">
             <button
               onClick={closeToast}
-              className="px-3 py-1 text-sm border rounded"
+              className="px-3 py-1 text-sm border rounded hover:bg-gray-50"
             >
               Cancel
             </button>
@@ -81,123 +126,248 @@ const AddRoom = () => {
 
   const handleDeleteRoom = async (id) => {
     try {
-      await axios.delete(`/api/rooms/delete/${id}`, {
-        withCredentials: true,
-      });
-      toast.success("Room deleted");
-      fetchRooms();
+      const { data } = await axios.delete(`/api/rooms/delete/${id}`);
+      if (data.success) {
+        toast.success("Room deleted");
+        fetchRooms();
+      }
     } catch (err) {
+      console.error("❌ Delete error:", err);
       toast.error("Failed to delete room");
     }
   };
 
+  const getRoomTypeIcon = (type) => {
+    switch(type) {
+      case "Classroom": return "📚";
+      case "Lab": return "🔬";
+      case "Tutorial": return "✏️";
+      default: return "🏫";
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 py-4 sm:py-6 md:py-10">
-      {/* ================= ADD ROOM ================= */}
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 md:mb-10 max-w-6xl mx-auto border">
-        <h2 className="text-xl sm:text-2xl font-semibold text-slate-800 mb-4 sm:mb-6">Add Room</h2>
-
-        <form
-          onSubmit={handleSubmit}
-          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4"
-        >
-          <input
-            type="text"
-            placeholder="Room Name (e.g. B101)"
-            value={formData.name}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                name: e.target.value.toUpperCase(),
-              })
-            }
-            className="px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg bg-slate-100 text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-
-          <select
-            value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-            className="px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg bg-slate-100 text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="Classroom">Classroom</option>
-            <option value="Lab">Lab</option>
-            <option value="Tutorial">Tutorial</option>
-          </select>
-
-          <input
-            type="number"
-            placeholder="Capacity"
-            value={formData.capacity}
-            onChange={(e) =>
-              setFormData({ ...formData, capacity: e.target.value })
-            }
-            className="px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg bg-slate-100 text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="sm:col-span-2 md:col-span-3 mt-2 py-2.5 sm:py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-white font-semibold disabled:opacity-60 text-sm sm:text-base"
-          >
-            {loading ? "Adding..." : "Add Room"}
-          </button>
-        </form>
-
-        {/* Helper text OUTSIDE the grid */}
-        <p className="text-xs sm:text-sm text-slate-500 mt-3">
-          Use standard room naming like <b>B101</b>, <b>Lab-2</b>, etc.
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 py-4 sm:py-6 md:py-10 px-4">
+      {/* HEADER */}
+      <div className="max-w-6xl mx-auto mb-6">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">🏫 Room Infrastructure</h1>
+        <p className="text-gray-600">Define room resources (metadata only - no assignments yet)</p>
       </div>
 
-      {/* ================= ROOMS TABLE ================= */}
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 max-w-6xl mx-auto border">
-        <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-slate-800">
-          Rooms List
-        </h3>
+      {/* ADD ROOM FORM */}
+      <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-8 max-w-6xl mx-auto border">
+        <h2 className="text-2xl font-semibold text-slate-800 mb-6 flex items-center gap-2">
+          <span>➕</span>
+          Add New Room
+        </h2>
 
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
-          <div className="inline-block min-w-full align-middle sm:px-0 px-4">
-            <table className="min-w-full border-collapse">
-              <thead>
-                <tr className="bg-blue-50 text-slate-700">
-                  <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold whitespace-nowrap">Name</th>
-                  <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold whitespace-nowrap">Type</th>
-                  <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold whitespace-nowrap">Capacity</th>
-                  <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold whitespace-nowrap">Action</th>
+        <div className="space-y-6">
+          {/* Row 1: Basic Info */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Room Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. B101, Lab-A"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    name: e.target.value.toUpperCase(),
+                  })
+                }
+                className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Room Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+              >
+                <option value="Classroom">📚 Classroom</option>
+                <option value="Lab">🔬 Lab</option>
+                <option value="Tutorial">✏️ Tutorial</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Capacity <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                min="10"
+                max="200"
+                placeholder="e.g. 60"
+                value={formData.capacity}
+                onChange={(e) =>
+                  setFormData({ ...formData, capacity: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Row 2: Lab Category (conditional) */}
+          {formData.type === "Lab" && (
+            <div className="bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
+              <label className="block text-sm font-semibold text-purple-900 mb-2">
+                🔬 Lab Category <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.labCategory}
+                onChange={(e) => setFormData({ ...formData, labCategory: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg border-2 border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all bg-white"
+              >
+                <option value="">-- Select Lab Category --</option>
+                {LAB_CATEGORIES.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <p className="text-xs text-purple-700 mt-2">
+                Helps in automatic lab-subject matching during timetable generation
+              </p>
+            </div>
+          )}
+
+          {/* Row 3: Primary Year */}
+          <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+            <label className="block text-sm font-semibold text-blue-900 mb-2">
+              🎓 Primary Year / Availability
+            </label>
+            <select
+              value={formData.primaryYear}
+              onChange={(e) => setFormData({ ...formData, primaryYear: e.target.value })}
+              className="w-full px-4 py-3 rounded-lg border-2 border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all bg-white"
+            >
+              {YEARS.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+            <div className="mt-3 space-y-1 text-xs text-blue-700">
+              <p>• <strong>Specific Year:</strong> Room appears only for that year in Wizard Step 3</p>
+              <p>• <strong>Shared:</strong> Room available for ALL years</p>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 transition-all text-white font-bold text-lg shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <span className="animate-spin">⟳</span>
+                <span>Adding Room...</span>
+              </>
+            ) : (
+              <>
+                <span>✅</span>
+                <span>Add Room to Infrastructure</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+          <p className="text-sm text-yellow-800">
+            <strong>💡 Note:</strong> This page only stores room metadata. Subject/division/batch assignments 
+            happen in <strong>Wizard Step 3</strong> during timetable generation.
+          </p>
+        </div>
+      </div>
+
+      {/* ROOMS TABLE */}
+      <div className="bg-white rounded-2xl shadow-lg p-6 max-w-6xl mx-auto border">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-slate-800">
+            📋 Room Infrastructure List
+          </h3>
+          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+            {rooms.length} Rooms
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-collapse">
+            <thead>
+              <tr className="bg-gradient-to-r from-blue-50 to-cyan-50 text-slate-700">
+                <th className="p-3 text-left text-sm font-semibold border-b-2 border-blue-200">Room</th>
+                <th className="p-3 text-left text-sm font-semibold border-b-2 border-blue-200">Type</th>
+                <th className="p-3 text-left text-sm font-semibold border-b-2 border-blue-200">Capacity</th>
+                <th className="p-3 text-left text-sm font-semibold border-b-2 border-blue-200">Category</th>
+                <th className="p-3 text-left text-sm font-semibold border-b-2 border-blue-200">Available For</th>
+                <th className="p-3 text-left text-sm font-semibold border-b-2 border-blue-200">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rooms.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="text-center p-8 text-gray-500">
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-4xl">🏫</span>
+                      <p>No rooms added yet</p>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {rooms.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" className="text-center p-4 sm:p-6 text-gray-500 text-sm sm:text-base">
-                      No rooms added yet
+              ) : (
+                rooms.map((r) => (
+                  <tr
+                    key={r._id}
+                    className="border-b hover:bg-blue-50 transition-colors"
+                  >
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{getRoomTypeIcon(r.type)}</span>
+                        <span className="font-bold text-gray-800">{r.name}</span>
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <span className="px-2 py-1 bg-gray-100 rounded text-xs font-semibold text-gray-700">
+                        {r.type}
+                      </span>
+                    </td>
+                    <td className="p-3 text-gray-700">{r.capacity}</td>
+                    <td className="p-3">
+                      {r.labCategory && r.labCategory !== "None" ? (
+                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">
+                          {r.labCategory}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                        r.primaryYear === "Shared" 
+                          ? "bg-green-100 text-green-700" 
+                          : "bg-blue-100 text-blue-700"
+                      }`}>
+                        {r.primaryYear}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <button
+                        onClick={() => confirmDeleteRoom(r._id)}
+                        className="px-3 py-1 text-xs rounded bg-red-600 hover:bg-red-700 text-white transition-colors font-semibold"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
-                ) : (
-                  rooms.map((r) => (
-                    <tr
-                      key={r._id}
-                      className="border-t hover:bg-blue-50 transition"
-                    >
-                      <td className="p-2 sm:p-3 text-sm sm:text-base whitespace-nowrap">{r.name}</td>
-                      <td className="p-2 sm:p-3 text-sm sm:text-base whitespace-nowrap">{r.type}</td>
-                      <td className="p-2 sm:p-3 text-sm sm:text-base whitespace-nowrap">{r.capacity}</td>
-                      <td className="p-2 sm:p-3 whitespace-nowrap">
-                        <button
-                          onClick={() => confirmDeleteRoom(r._id)}
-                          className="px-2 sm:px-3 py-1 text-xs rounded bg-red-600 hover:bg-red-700 text-white transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

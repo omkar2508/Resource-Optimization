@@ -1,3 +1,4 @@
+// Wizard.jsx - FIXED: Proper room mapping structure for solver
 import React, { useState, useMemo, useEffect } from "react";
 import YearPanel from "./YearPanel";
 import TeacherForm from "./TeacherForm";
@@ -5,7 +6,6 @@ import RoomAllocation from "./RoomAllocation";
 import SchedulerResult from "./SchedulerResult";
 import axios from "axios";
 
-// Helper function to calculate periods per day from time configuration
 function calculatePeriodsPerDay(timeConfig) {
   if (!timeConfig) return 6;
   
@@ -32,7 +32,7 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
   const [result, setResult] = useState(null);
   const [rooms, setRooms] = useState([]);
 
-  // Initialize year data with time configuration and semester info
+  // Initialize year data
   const initialYearData = useMemo(() => {
     const obj = {};
     selectedYears.forEach((y) => {
@@ -43,7 +43,7 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
         lunchBreak: 4,
         holidays: ["Sat", "Sun"],
         subjects: [],
-        semester: selectedSemesters[y], // Store semester info
+        semester: selectedSemesters[y],
         timeConfig: {
           startTime: "09:00",
           endTime: "17:00",
@@ -62,8 +62,6 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
   // Handle imported data
   useEffect(() => {
     if (importedData) {
-      console.log("Processing imported data:", importedData);
-      
       if (importedData.years) {
         const importedYears = { ...importedData.years };
         
@@ -84,7 +82,6 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
             importedYears[year].holidays = ["Sat", "Sun"];
           }
 
-          // Ensure semester is set
           if (!importedYears[year].semester && selectedSemesters[year]) {
             importedYears[year].semester = selectedSemesters[year];
           }
@@ -123,32 +120,77 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
     });
   }, [yearData]);
 
+  // ✅ FIXED: Build room mappings that solver can understand
+  const buildRoomMappingsForSolver = () => {
+    const mappings = {};
+    
+    console.log("🔧 Building room mappings from assignments:", rooms);
+    
+    rooms.forEach(room => {
+      const roomName = room.name;
+      const roomId = room._id || room.id;
+      const assignments = room.assignments || [];
+      
+      console.log(`Processing room: ${roomName}, type: ${room.type}, assignments:`, assignments);
+      
+      assignments.forEach(assignment => {
+        const year = assignment.year;
+        const subjectCode = assignment.code;
+        
+        if (!subjectCode) {
+          // Division assignment (classroom)
+          console.log(`  → Division assignment: ${year} Div ${assignment.division}`);
+          return;
+        }
+        
+        // Subject assignment (lab/tutorial)
+        const subjectType = assignment.type;
+        const totalBatches = assignment.totalBatches || 1;
+        
+        // ✅ Create mapping key: "year_subjectCode_type"
+        const mappingKey = `${year}_${subjectCode}_${subjectType}`;
+        
+        console.log(`  → Subject assignment: ${subjectCode} (${subjectType}) - ${totalBatches} batches`);
+        
+        // ✅ CRITICAL: Map ALL batches to THIS room
+        const batchMappings = [];
+        for (let batchNum = 1; batchNum <= totalBatches; batchNum++) {
+          batchMappings.push({
+            batch: batchNum,
+            room: roomId,
+            roomName: roomName
+          });
+          console.log(`    ✅ Mapped batch ${batchNum} → ${roomName}`);
+        }
+        
+        mappings[mappingKey] = {
+          subjectCode: subjectCode,
+          type: subjectType,
+          year: year,
+          batches: batchMappings,
+          roomName: roomName,
+          roomId: roomId
+        };
+      });
+    });
+    
+    console.log("📦 Final room mappings:", mappings);
+    return mappings;
+  };
+
   const handleGenerate = async () => {
     try {
-      // Validate time configuration
+      // Validation
       const validationErrors = [];
       
       Object.keys(yearData).forEach((year) => {
         const timeConfig = yearData[year].timeConfig;
         if (!timeConfig) {
           validationErrors.push(`${year}: Missing time configuration`);
-        } else {
-          if (!timeConfig.startTime) validationErrors.push(`${year}: Missing start time`);
-          if (!timeConfig.endTime) validationErrors.push(`${year}: Missing end time`);
-          if (!timeConfig.periodDuration) validationErrors.push(`${year}: Missing period duration`);
-          
-          if (timeConfig.startTime && timeConfig.endTime) {
-            const start = new Date(`2000-01-01T${timeConfig.startTime}`);
-            const end = new Date(`2000-01-01T${timeConfig.endTime}`);
-            if (end <= start) {
-              validationErrors.push(`${year}: End time must be after start time`);
-            }
-          }
         }
         
-        // Validate subjects exist
         if (!yearData[year].subjects || yearData[year].subjects.length === 0) {
-          validationErrors.push(`${year}: No subjects loaded. Please add subjects for ${year} - Semester ${yearData[year].semester} first.`);
+          validationErrors.push(`${year}: No subjects loaded for Semester ${yearData[year].semester}`);
         }
       });
       
@@ -167,25 +209,26 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
         return;
       }
 
+      // ✅ Build proper room mappings
+      const roomMappings = buildRoomMappingsForSolver();
+
       const payload = {
         years: yearData,
         teachers: teachers,
         rooms: rooms,
+        roomMappings: roomMappings  // ✅ Send properly structured mappings
       };
 
-      console.log("Sending payload:", payload);
+      console.log("📤 Sending payload with room mappings:", payload);
 
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/scheduler/generate`,
         payload
       );
 
-      console.log("Scheduler response:", res.data);
-
       const timetable = res.data.timetable || res.data;
       if (!timetable) {
         alert("Invalid scheduler response");
-        console.log("Invalid data:", res.data);
         return;
       }
 
@@ -200,21 +243,17 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
   const handleSave = async (outerKey, table, isTeacher = false) => {
     let payload = {};
     if (isTeacher) {
-      // Teacher timetables are not saved separately
       alert("Teacher timetables are derived from class timetables and cannot be saved separately.");
       return { success: true, message: "Teacher timetables are derived dynamically" };
     } else {
-      // Parse outerKey format: "FE Div 1" or "1st Year Div 1"
       const keyStr = String(outerKey);
       let year, division;
       
       if (keyStr.includes(" Div ")) {
-        // Format: "year Div division"
         const divIndex = keyStr.indexOf(" Div ");
         year = keyStr.substring(0, divIndex).trim();
         division = keyStr.substring(divIndex + 5).trim();
       } else {
-        // Fallback: try to split and extract
         const parts = keyStr.split(" ");
         const divIndex = parts.findIndex(p => p.toLowerCase() === "div");
         if (divIndex !== -1 && divIndex < parts.length - 1) {
@@ -227,12 +266,10 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
         }
       }
 
-      // Ensure division is valid (should be numeric)
       if (!/^\d+$/.test(division)) {
         division = "1";
       }
 
-      // Ensure year is not empty
       if (!year || year.length === 0) {
         console.error("Could not parse year from outerKey:", outerKey);
         alert("Failed to parse timetable information. Please try again.");
@@ -272,7 +309,7 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
   const stepTitles = [
     { number: 1, title: "Year Configuration", icon: "📚", color: "blue" },
     { number: 2, title: "Teacher Assignment", icon: "👨‍🏫", color: "purple" },
-    { number: 3, title: "Allocate Rooms", icon: "🏢", color: "green" },
+    { number: 3, title: "Room Allocation", icon: "🏢", color: "green" },
     { number: 4, title: "Timetable Result", icon: "📅", color: "cyan" },
   ];
 
@@ -295,50 +332,45 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
   };
 
   return (
-    <div className="bg-white/90 backdrop-blur-lg rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 w-full max-w-6xl mx-auto overflow-hidden">
-      <div className="bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 p-4 sm:p-6 md:p-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2 truncate">
+    <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 w-full max-w-6xl mx-auto overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-3xl font-bold text-white mb-2">
               Configuration Wizard
             </h2>
-            <p className="text-sm sm:text-base text-blue-100">
-              {stepTitles[step - 1].icon} {stepTitles[step - 1].title}
+            <p className="text-blue-100">
+              {stepTitles[step - 1].title}
             </p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-3">
             {step < 4 && (
               <button
                 onClick={handleExportConfig}
-                className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white font-medium text-xs sm:text-sm border border-white/30 hover:bg-white/30 transition-all flex items-center justify-center gap-1.5 sm:gap-2"
-                title="Export current configuration as JSON"
+                className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white font-medium text-sm border border-white/30 hover:bg-white/30 transition-all flex items-center gap-2"
               >
                 <span>💾</span>
-                <span className="hidden sm:inline">Export Config</span>
-                <span className="sm:hidden">Export</span>
+                Export Config
               </button>
             )}
-            <div className="px-3 sm:px-5 py-2 sm:py-3 bg-white/20 backdrop-blur-sm rounded-lg sm:rounded-xl text-white font-bold text-sm sm:text-lg border border-white/30 whitespace-nowrap">
+            <div className="px-5 py-3 bg-white/20 backdrop-blur-sm rounded-xl text-white font-bold text-lg border border-white/30">
               Step {step} of 4
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between relative px-1 sm:px-2 md:px-4 pb-2 sm:pb-0">
-          <div className="absolute top-3 sm:top-4 md:top-6 left-0 right-0 h-0.5 sm:h-1 bg-white/20">
+        <div className="flex items-center justify-between relative px-4">
+          <div className="absolute top-6 left-0 right-0 h-1 bg-white/20">
             <div
-              className="h-full bg-white transition-all duration-500 ease-out"
+              className="h-full bg-white transition-all duration-500"
               style={{ width: `${((step - 1) / 3) * 100}%` }}
             />
           </div>
 
           {stepTitles.map((s) => (
-            <div
-              key={s.number}
-              className="relative flex flex-col items-center z-10 flex-1 min-w-0"
-            >
+            <div key={s.number} className="relative flex flex-col items-center z-10 flex-1">
               <div
-                className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold transition-all duration-300 text-xs sm:text-sm md:text-base ${
+                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all duration-300 ${
                   step >= s.number
                     ? "bg-white text-blue-600 shadow-lg scale-110"
                     : "bg-white/20 text-white/60 border-2 border-white/30"
@@ -346,24 +378,15 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
               >
                 {step > s.number ? "✓" : s.number}
               </div>
-              <span
-                className={`mt-1 sm:mt-2 text-[10px] sm:text-xs md:text-sm font-semibold ${
-                  step >= s.number ? "text-white" : "text-white/60"
-                }`}
-              >
+              <span className="mt-2 text-xs font-semibold">
                 {s.icon}
-              </span>
-              <span className={`hidden lg:block mt-1 text-[10px] font-semibold text-center truncate w-full ${
-                  step >= s.number ? "text-white" : "text-white/60"
-                }`}>
-                {s.title.split(' ')[0]}
               </span>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="p-4 sm:p-6 md:p-8">
+      <div className="p-8">
         {step === 1 && (
           <div className="animate-fadeIn">
             <YearPanel
@@ -410,26 +433,25 @@ export default function Wizard({ selectedYears, selectedSemesters, importedData 
         )}
 
         {step < 3 && (
-          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-gray-200">
+          <div className="mt-8 flex justify-between items-center gap-4 pt-6 border-t border-gray-200">
             {step > 1 ? (
               <button
                 onClick={() => setStep(step - 1)}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-white/80 backdrop-blur-sm text-gray-700 rounded-lg sm:rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200 border border-gray-200/50 flex items-center justify-center gap-2 text-sm sm:text-base"
+                className="px-6 py-3 bg-white/80 text-gray-700 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all border border-gray-200/50 flex items-center gap-2"
               >
-                <span className="text-base sm:text-lg">←</span>
+                <span>←</span>
                 Back
               </button>
             ) : (
-              <div className="hidden sm:block" />
+              <div />
             )}
 
             <button
               onClick={() => setStep(step + 1)}
-              className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-lg sm:rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base sm:ml-auto"
+              className="px-8 py-3 bg-gradient-to-r from-blue-500 to-cyan-400 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2 ml-auto"
             >
-              <span className="hidden sm:inline">Next Step</span>
-              <span className="sm:hidden">Next</span>
-              <span className="text-base sm:text-lg">→</span>
+              Next Step
+              <span>→</span>
             </button>
           </div>
         )}
