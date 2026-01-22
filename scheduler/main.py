@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from solver import solve_timetable
+import os
 import traceback
 
 app = Flask(__name__)
@@ -26,5 +27,7 @@ def generate():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=6000)
+    port = int(os.environ.get("PORT", 6000))
+    app.run(host="0.0.0.0", port=port)
