@@ -27,7 +27,11 @@ import subjectRoutes from "./routes/subjectRoutes.js";
 // INIT
 // ----------------------------------------------
 const app = express();
+app.set("trust proxy", 1); // trust first proxy
+
 const PORT = process.env.PORT || 5000;
+
+
 
 // Connect Database
 connectDB();
@@ -39,10 +43,11 @@ console.log("Loaded admin:", process.env.ADMIN_EMAIL);
 // ----------------------------------------------
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:8080", "https://resourceoptfrontendfolder.vercel.app"],
+    origin: "https://resourceoptfrontendfolder.vercel.app",
     credentials: true,
   })
 );
+
 
 app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
@@ -53,12 +58,12 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: "none",
-      secure: true,
-      maxAge: 1000 * 60 * 60 * 4, // 4 hours
-    },
+      cookie: {
+        httpOnly: true,
+        sameSite: "none",
+        secure: true,
+        maxAge: 1000 * 60 * 60 * 4,
+      }
   })
 );
 
