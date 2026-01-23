@@ -11,7 +11,8 @@ export async function callPythonScheduler(payload) {
     return response.data;
 
   } catch (err) {
-    console.error("Scheduler API Error:", err.message);
-    throw new Error("Scheduler API Not Responding");
+    console.error("❌ PYTHON FULL ERROR:");
+    console.error(err.response?.data || err.message);
+    throw err;
   }
 }

@@ -1,55 +1,62 @@
 import { callPythonScheduler } from "../utils/callPython.js";
-import timetableModel from "../models/timetableModel.js";
+import Timetable from "../models/timetableModel.js";
 
-export async function generateTimetable(req, res) {
+export const generateTimetable = async (req, res) => {
   try {
     const payload = req.body;
 
-    // STEP 1: Fetch all saved timetables for conflict checking
-    const savedTimetables = await timetableModel.find({}, {
-      year: 1,
-      division: 1,
-      timetableData: 1,
-      _id: 0
-    }).lean();
+    const savedTimetables = await Timetable.find({})
+      .sort({ createdAt: -1 })
+      .limit(5);
 
-    console.log(`Found ${savedTimetables.length} saved timetables for conflict checking`);
-
-    // STEP 2: Add saved timetables to payload
+    // TEMP: comment this line if solver misbehaves
     payload.saved_timetables = savedTimetables;
 
-    // STEP 3: Call Python scheduler with validation
+    console.log("Sending payload to scheduler...");
+
     const result = await callPythonScheduler(payload);
 
-    // STEP 4: Return result with all validation data
-    return res.json({
-      status: result.status || "success",
-      timetable: {
-        class_timetable: result.class_timetable || {},
-        teacher_timetable: result.teacher_timetable || {},
+    console.log("RAW PYTHON RESULT:", JSON.stringify(result, null, 2));
+
+    if (!result || typeof result !== "object") {
+      throw new Error("Invalid response from scheduler");
+    }
+
+    let saved = null;
+    if (result.class_timetable) {
+      saved = await Timetable.create({
+        timetableData: result.class_timetable,
+        teacherTimetable: result.teacher_timetable || {},
         conflicts: result.conflicts || [],
         unallocated: result.unallocated || [],
-        recommendations: result.recommendations || [],
         warnings: result.warnings || [],
-        critical_issues: result.critical_issues || []
-      }
+        critical_issues: result.critical_issues || [],
+      });
+    }
+
+    return res.json({
+      status: result.status ?? "success",
+      message: "Timetable generated successfully",
+      timetable: {
+        class_timetable: result.class_timetable ?? {},
+        teacher_timetable: result.teacher_timetable ?? {},
+        conflicts: result.conflicts ?? [],
+        unallocated: result.unallocated ?? [],
+        recommendations: result.recommendations ?? [],
+        warnings: result.warnings ?? [],
+        critical_issues: result.critical_issues ?? [],
+      },
+      savedId: saved?._id || null
     });
+
   } catch (err) {
-    console.error("Scheduler error:", err);
+    console.error("BACKEND SCHEDULER ERROR:");
+    console.error(err.response?.data || err.stack || err.message);
 
     return res.status(500).json({
       status: "error",
-      message: "Scheduler failed. Check Python logs.",
-      error: err.toString(),
-      timetable: {
-        class_timetable: {},
-        teacher_timetable: {},
-        conflicts: [],
-        unallocated: [],
-        recommendations: [],
-        warnings: [err.toString()],
-        critical_issues: [err.toString()]
-      }
+      message: "Scheduler failed",
+      realError: err.response?.data || err.message
     });
   }
-}
+};
