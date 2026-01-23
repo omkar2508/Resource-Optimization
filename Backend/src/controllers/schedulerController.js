@@ -12,6 +12,12 @@ export const generateTimetable = async (req, res) => {
     // TEMP: comment this line if solver misbehaves
     payload.saved_timetables = savedTimetables;
 
+    const years = Object.keys(payload.years || {});
+    const firstYear = years[0] || "Unknown";
+
+    const firstDivision =
+      payload.teachers?.[0]?.divisions?.[firstYear]?.[0] || "1";
+
     console.log("Sending payload to scheduler...");
 
     const result = await callPythonScheduler(payload);
@@ -25,6 +31,8 @@ export const generateTimetable = async (req, res) => {
     let saved = null;
     if (result.class_timetable) {
       saved = await Timetable.create({
+        year: firstYear,
+        division: firstDivision,
         timetableData: result.class_timetable,
         teacherTimetable: result.teacher_timetable || {},
         conflicts: result.conflicts || [],
