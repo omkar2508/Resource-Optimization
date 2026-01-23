@@ -4,6 +4,16 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 import { Navbar } from "../components/Navbar";
+import {
+  Mail,
+  Lock,
+  User,
+  GraduationCap,
+  Calendar,
+  Building2,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 
 /* =========================
    Department → Divisions
@@ -18,6 +28,7 @@ const departmentDivisions = {
 const Login = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
 
   const initialState = location.state?.mode === "signup" ? "Sign Up" : "Login";
   const [state, setState] = useState(initialState);
@@ -71,7 +82,7 @@ const Login = () => {
           password,
           department,
           Number(admissionYear),
-          division
+          division,
         );
       } else {
         await login(email, password);
@@ -101,11 +112,15 @@ const Login = () => {
           {/* NAME */}
           {state === "Sign Up" && (
             <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-full bg-[#333A5C]">
-              <img src={assets.person_icon} alt="" className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+              <img
+                src={assets.person_icon}
+                alt=""
+                className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
+              />
               <input
                 onChange={(e) => setName(e.target.value)}
                 value={name}
-                className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder:text-indigo-400"
+                className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder:text-white"
                 type="text"
                 placeholder="Enter your name"
                 required
@@ -115,46 +130,58 @@ const Login = () => {
 
           {/* DEPARTMENT */}
           {state === "Sign Up" && (
-            <select
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              required
-              className="mb-4 w-full px-5 py-2.5 rounded-full bg-[#333A5C] text-white"
-            >
-              <option value="">Select Department</option>
-              {Object.keys(departmentDivisions).map((dept) => (
-                <option key={dept} value={dept} className="text-black">
-                  {dept}
+            <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-full bg-[#333A5C]">
+              <Building2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+              <select
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                required
+                className="w-full bg-transparent text-white focus:outline-none text-sm sm:text-base"
+              >
+                <option value="" className="text-black">
+                  Select Department
                 </option>
-              ))}
-            </select>
+                {Object.keys(departmentDivisions).map((dept) => (
+                  <option key={dept} value={dept} className="text-black">
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
 
           {/* DIVISION */}
           {state === "Sign Up" && department && (
-            <div className="mb-4">
-              <select
-                value={division}
-                onChange={(e) => setDivision(e.target.value)}
-                required
-                className={`w-full px-5 py-2.5 rounded-full bg-[#333A5C] text-white ${
-                  departmentDivisions[department]?.length === 1 
-                    ? "opacity-75 cursor-not-allowed" 
-                    : "cursor-pointer hover:bg-[#3d4565] transition-colors"
-                }`}
-                disabled={departmentDivisions[department]?.length === 1}
-              >
-                <option value="" className="text-black bg-white">
-                  {departmentDivisions[department]?.length === 1
-                    ? `Division ${departmentDivisions[department][0]} (Auto Assigned)`
-                    : "Select Division"}
-                </option>
-                {departmentDivisions[department]?.map((div) => (
-                  <option key={div} value={div} className="text-black bg-white">
-                    Division {div}
+            <div className="mb-3 sm:mb-4">
+              <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-full bg-[#333A5C]">
+                <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <select
+                  value={division}
+                  onChange={(e) => setDivision(e.target.value)}
+                  required
+                  className={`w-full bg-transparent text-white focus:outline-none text-sm sm:text-base ${
+                    departmentDivisions[department]?.length === 1
+                      ? "opacity-75 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
+                  disabled={departmentDivisions[department]?.length === 1}
+                >
+                  <option value="" className="text-black bg-white">
+                    {departmentDivisions[department]?.length === 1
+                      ? `Division ${departmentDivisions[department][0]} (Auto Assigned)`
+                      : "Select Division"}
                   </option>
-                ))}
-              </select>
+                  {departmentDivisions[department]?.map((div) => (
+                    <option
+                      key={div}
+                      value={div}
+                      className="text-black bg-white"
+                    >
+                      Division {div}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {departmentDivisions[department]?.length > 1 && (
                 <p className="text-xs text-indigo-400 mt-1 ml-2">
                   {departmentDivisions[department].length} divisions available
@@ -165,28 +192,37 @@ const Login = () => {
 
           {/* ADMISSION YEAR */}
           {state === "Sign Up" && (
-            <select
-              value={admissionYear}
-              onChange={(e) => setAdmissionYear(e.target.value)}
-              required
-              className="mb-4 w-full px-5 py-2.5 rounded-full bg-[#333A5C] text-white"
-            >
-              <option value="">Admission Year</option>
-              {[2021, 2022, 2023, 2024, 2025].map((year) => (
-                <option key={year} value={year} className="text-black">
-                  {year}
+            <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-full bg-[#333A5C]">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+              <select
+                value={admissionYear}
+                onChange={(e) => setAdmissionYear(e.target.value)}
+                required
+                className="w-full bg-transparent text-white focus:outline-none text-sm sm:text-base"
+              >
+                <option value="" className="text-black">
+                  Admission Year
                 </option>
-              ))}
-            </select>
+                {[2021, 2022, 2023, 2024, 2025].map((year) => (
+                  <option key={year} value={year} className="text-black">
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
 
           {/* EMAIL */}
-          <div className="mb-4 flex items-center gap-3 px-5 py-2.5 rounded-full bg-[#333A5C]">
-            <img src={assets.mail_icon} alt="" />
+          <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-full bg-[#333A5C]">
+            <img
+              src={assets.mail_icon}
+              alt=""
+              className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
+            />
             <input
               onChange={(e) => setEmail(e.target.value)}
               value={email}
-              className="bg-transparent outline-none w-full text-white"
+              className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder:text-indigo-400"
               type="email"
               placeholder="Email id"
               required
@@ -194,21 +230,34 @@ const Login = () => {
           </div>
 
           {/* PASSWORD */}
-          <div className="mb-4 flex items-center gap-3 px-5 py-2.5 rounded-full bg-[#333A5C]">
-            <img src={assets.lock_icon} alt="" />
+          {/* PASSWORD */}
+          <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-full bg-[#333A5C]">
+            <img
+              src={assets.lock_icon}
+              alt=""
+              className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
+            />
+
             <input
               onChange={(e) => setPassword(e.target.value)}
               value={password}
-              className="bg-transparent outline-none w-full text-white"
-              type="password"
+              className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder:text-white"
+              type={showPassword ? "text" : "password"}
               placeholder="Password"
               required
             />
+
+            <div
+              onClick={() => setShowPassword(!showPassword)}
+              className="cursor-pointer text-white opacity-70 hover:opacity-100"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </div>
           </div>
 
           {state === "Login" && (
             <p
-              className="mb-4 text-indigo-400 cursor-pointer hover:underline"
+              className="mb-4 text-indigo-400 cursor-pointer hover:underline text-sm"
               onClick={() => navigate("/reset-password")}
             >
               Forgot password?

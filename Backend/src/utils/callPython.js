@@ -5,13 +5,13 @@ export async function callPythonScheduler(payload) {
     const response = await axios.post(
       `${process.env.PYTHON_API_URL}/generate`,
       payload,
-      { timeout: 20000 }
+      { timeout: 200000 }
     );
 
     return response.data;
 
   } catch (err) {
-    console.error("❌ PYTHON FULL ERROR:");
+    console.error("PYTHON FULL ERROR: ");
     console.error(err.response?.data || err.message);
     throw err;
   }
