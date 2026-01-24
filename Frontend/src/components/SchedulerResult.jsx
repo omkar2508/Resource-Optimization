@@ -76,7 +76,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
       year = keyStr.substring(0, divIndex).trim();
       division = keyStr.substring(divIndex + 5).trim();
       
-      console.log("✅ Extracted - Year:", year, "Division:", division);
+      console.log("Extracted - Year:", year, "Division:", division);
     } else {
       // Fallback: try to split and extract
       const parts = keyStr.split(" ");
@@ -102,7 +102,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
 
     // Ensure year is not empty
     if (!year || year.length === 0) {
-      console.error("❌ Could not parse year from outerKey:", outerKey);
+      console.error("Could not parse year from outerKey:", outerKey);
       toast.error("Failed to parse timetable information. Please try again.");
       return { success: false, message: "Invalid timetable key format" };
     }
@@ -195,8 +195,8 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
             {criticalIssues.length > 0 
               ? "🚨 Critical issues detected - cannot generate timetable"
               : hasIssues 
-                ? "⚠️ Review issues before finalizing" 
-                : "✅ Timetable generated successfully"}
+                ? "Review issues before finalizing" 
+                : "Timetable generated successfully"}
           </p>
         </div>
 

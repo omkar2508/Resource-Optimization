@@ -10,6 +10,7 @@ import teacher_icon from './teacher_icon.svg'
 import dashboard_icon from './dashboard_icon.svg'
 import add_icon from './add_icon.svg'
 import room_icon from './room_icon.svg'
+import school from './school.svg'
 
 export const assets = {
     arrow_icon,
@@ -24,4 +25,5 @@ export const assets = {
     dashboard_icon,
     add_icon,
     room_icon, 
+    school
 }
