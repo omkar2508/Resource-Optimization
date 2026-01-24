@@ -43,7 +43,7 @@ console.log("Loaded admin:", process.env.ADMIN_EMAIL);
 // ----------------------------------------------
 app.use(
   cors({
-    origin: "https://resourceoptfrontendfolder.vercel.app",
+    origin: ["https://resourceoptfrontendfolder.vercel.app", "http://localhost:8080"],
     credentials: true,
   })
 );
