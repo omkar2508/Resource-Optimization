@@ -25,6 +25,17 @@ const departmentDivisions = {
   "IT Engineering": ["1", "2"], // multiple divisions - user selects
 };
 
+// =========================
+// Validation Helpers Function
+// =========================
+const isValidName = (name) => /^[A-Za-z ]{2,}$/.test(name.trim());
+
+const isValidEmail = (email) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
+const isValidPassword = (password) => password.length >= 6;
+
+
 const Login = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -67,30 +78,96 @@ const Login = () => {
     else if (location.state?.mode === "login") setState("Login");
   }, [location]);
 
-  const onSubmitHandler = async (e) => {
-    e.preventDefault();
+  // const onSubmitHandler = async (e) => {
+  //   e.preventDefault();
 
-    try {
+  //   try {
+  //     if (state === "Sign Up") {
+  //       if (!department || !admissionYear || !division) {
+  //         return toast.error("Please fill all required fields");
+  //       }
+
+  //       await signup(
+  //         name,
+  //         email,
+  //         password,
+  //         department,
+  //         Number(admissionYear),
+  //         division,
+  //       );
+  //     } else {
+  //       await login(email, password);
+  //     }
+  //   } catch {
+  //     toast.error("Something went wrong");
+  //   }
+  // };
+
+    const onSubmitHandler = async (e) => {
+      e.preventDefault();
+
+      // =========================
+      // COMMON VALIDATIONS
+      // =========================
+      if (!isValidEmail(email)) {
+        return toast.error("Please enter a valid email address");
+      }
+
+      if (!password) {
+        return toast.error("Password is required");
+      }
+
+      // =========================
+      // SIGN UP VALIDATIONS
+      // =========================
       if (state === "Sign Up") {
-        if (!department || !admissionYear || !division) {
-          return toast.error("Please fill all required fields");
+        if (!isValidName(name)) {
+          return toast.error(
+            "Name should contain only letters and be at least 2 characters"
+          );
         }
 
-        await signup(
-          name,
-          email,
-          password,
-          department,
-          Number(admissionYear),
-          division,
-        );
+        if (!isValidPassword(password)) {
+          return toast.error("Password must be at least 6 characters long");
+        }
+
+        if (!department) {
+          return toast.error("Please select a department");
+        }
+
+        if (!division) {
+          return toast.error("Please select a division");
+        }
+
+        if (!admissionYear) {
+          return toast.error("Please select admission year");
+        }
+
+        try {
+          await signup(
+            name.trim(),
+            email.trim(),
+            password,
+            department,
+            Number(admissionYear),
+            division
+          );
+        } catch {
+          toast.error("Signup failed");
+        }
+
       } else {
-        await login(email, password);
+        // =========================
+        // LOGIN VALIDATIONS
+        // =========================
+        try {
+          await login(email.trim(), password);
+        } catch {
+          toast.error("Invalid login credentials");
+        }
       }
-    } catch {
-      toast.error("Something went wrong");
-    }
-  };
+    };
+
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 flex items-center justify-center relative overflow-hidden p-4">
