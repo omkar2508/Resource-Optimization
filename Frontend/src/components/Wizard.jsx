@@ -333,27 +333,28 @@
 
     return (
       <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 w-full max-w-6xl mx-auto overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
             <div>
-              <h2 className="text-3xl font-bold text-white mb-2">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">
                 Configuration Wizard
               </h2>
-              <p className="text-blue-100">
+              <p className="text-blue-100 text-sm sm:text-base">
                 {stepTitles[step - 1].title}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
               {step < 4 && (
                 <button
                   onClick={handleExportConfig}
-                  className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white font-medium text-sm border border-white/30 hover:bg-white/30 transition-all flex items-center gap-2"
+                  className="px-2 sm:px-4 py-1.5 sm:py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white font-medium text-xs sm:text-sm border border-white/30 hover:bg-white/30 transition-all flex items-center gap-1 sm:gap-2 flex-shrink-0"
                 >
-                  <span>💾</span>
-                  Export Config
+                  <span className="text-sm sm:text-base">💾</span>
+                  <span className="hidden sm:inline">Export Config</span>
+                  <span className="sm:hidden">Export</span>
                 </button>
               )}
-              <div className="px-5 py-3 bg-white/20 backdrop-blur-sm rounded-xl text-white font-bold text-lg border border-white/30">
+              <div className="px-3 sm:px-5 py-2 sm:py-3 bg-white/20 backdrop-blur-sm rounded-xl text-white font-bold text-xs sm:text-sm md:text-lg border border-white/30 whitespace-nowrap">
                 Step {step} of 4
               </div>
             </div>

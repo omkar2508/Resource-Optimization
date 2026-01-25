@@ -103,15 +103,15 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 flex items-center justify-center relative p-4 overflow-hidden">
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 flex items-center justify-center relative p-4 sm:p-6 overflow-hidden">
       {/* BLURRED BACKGROUND BLOBS */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply blur-xl opacity-20 animate-blob"></div>
-        <div className="absolute top-40 right-10 w-72 h-72 bg-cyan-400 rounded-full mix-blend-multiply blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute bottom-10 left-1/2 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+        <div className="absolute top-10 sm:top-20 left-4 sm:left-10 w-48 h-48 sm:w-72 sm:h-72 bg-blue-400 rounded-full mix-blend-multiply blur-xl opacity-20 animate-blob"></div>
+        <div className="absolute top-20 sm:top-40 right-4 sm:right-10 w-48 h-48 sm:w-72 sm:h-72 bg-cyan-400 rounded-full mix-blend-multiply blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-4 sm:bottom-10 left-1/2 w-48 h-48 sm:w-72 sm:h-72 bg-purple-400 rounded-full mix-blend-multiply blur-xl opacity-20 animate-blob animation-delay-4000"></div>
 
-        <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-pink-300 rounded-full blur-2xl opacity-10 animate-blob-slow"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-300 rounded-full blur-2xl opacity-10 animate-blob-slow animation-delay-3000"></div>
+        <div className="absolute top-1/3 left-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-pink-300 rounded-full blur-2xl opacity-10 animate-blob-slow"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-indigo-300 rounded-full blur-2xl opacity-10 animate-blob-slow animation-delay-3000"></div>
       </div>
 
       {/* TOP LEFT ResourceOPT */}
@@ -138,30 +138,30 @@ const ResetPassword = () => {
       <Navbar />
 
       {/* CONTENT CARD */}
-      <div className="relative z-30 bg-slate-900 px-10 py-10 rounded-xl shadow-xl w-full max-w-md text-indigo-300">
+      <div className="relative z-30 bg-slate-900 px-6 sm:px-8 md:px-10 py-6 sm:py-8 md:py-10 rounded-xl shadow-xl w-full max-w-md text-indigo-300">
         {/* Step 1 — Email */}
         {!isEmailSent && (
           <form onSubmit={onSubmitEmail}>
-            <h1 className="text-white text-3xl font-semibold text-center mb-4">
+            <h1 className="text-white text-2xl sm:text-3xl font-semibold text-center mb-3 sm:mb-4">
               Reset Password
             </h1>
 
-            <p className="text-center mb-6">
+            <p className="text-center mb-4 sm:mb-6 text-sm sm:text-base">
               Enter your registered email address
             </p>
 
-            <div className="mb-4 flex items-center gap-3 px-5 py-2.5 rounded-full bg-[#333A5C]">
-              <img src={assets.mail_icon} className="w-4" />
+            <div className="mb-4 flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-[#333A5C]">
+              <img src={assets.mail_icon} className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
               <input
                 type="email"
-                className="bg-transparent outline-none text-white w-full"
+                className="bg-transparent outline-none text-white w-full text-sm sm:text-base placeholder:text-indigo-400"
                 placeholder="Email id"
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
 
-            <button className="w-full py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white">
+            <button className="w-full py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white text-sm sm:text-base font-medium hover:opacity-90 transition-opacity">
               Send OTP
             </button>
           </form>
@@ -170,22 +170,22 @@ const ResetPassword = () => {
         {/* Step 2 — OTP */}
         {isEmailSent && !isOtpSubmitted && (
           <form onSubmit={onSubmitOtp}>
-            <h1 className="text-white text-3xl font-semibold text-center mb-4">
+            <h1 className="text-white text-2xl sm:text-3xl font-semibold text-center mb-3 sm:mb-4">
               Enter OTP
             </h1>
 
-            <p className="text-center mb-6">
+            <p className="text-center mb-4 sm:mb-6 text-sm sm:text-base">
               Enter the 6-digit verification code sent to your email.
             </p>
 
-            <div className="flex justify-between mb-8">
+            <div className="flex justify-between gap-1.5 sm:gap-2 mb-6 sm:mb-8">
               {Array(6)
                 .fill("")
                 .map((_, i) => (
                   <input
                     key={i}
                     maxLength={1}
-                    className="w-12 h-12 bg-[#333A5C] text-white text-center text-xl rounded-md"
+                    className="w-10 h-10 sm:w-12 sm:h-12 bg-[#333A5C] text-white text-center text-lg sm:text-xl rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     ref={(el) => (inputRefs.current[i] = el)}
                     onInput={(e) => handleInput(e, i)}
                     onKeyDown={(e) => handleKeyDown(e, i)}
@@ -194,7 +194,7 @@ const ResetPassword = () => {
                 ))}
             </div>
 
-            <button className="w-full py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white">
+            <button className="w-full py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white text-sm sm:text-base font-medium hover:opacity-90 transition-opacity">
               Verify OTP
             </button>
           </form>
@@ -203,24 +203,24 @@ const ResetPassword = () => {
         {/* Step 3 — New Password */}
         {isOtpSubmitted && (
           <form onSubmit={onSubmitNewPassword}>
-            <h1 className="text-white text-3xl font-semibold text-center mb-4">
+            <h1 className="text-white text-2xl sm:text-3xl font-semibold text-center mb-3 sm:mb-4">
               New Password
             </h1>
 
-            <p className="text-center mb-6">Create a new password</p>
+            <p className="text-center mb-4 sm:mb-6 text-sm sm:text-base">Create a new password</p>
 
-            <div className="mb-4 flex items-center gap-3 px-5 py-2.5 rounded-full bg-[#333A5C]">
-              <img src={assets.lock_icon} className="w-4" />
+            <div className="mb-4 flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-[#333A5C]">
+              <img src={assets.lock_icon} className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
               <input
                 type="password"
-                className="bg-transparent outline-none text-white w-full"
+                className="bg-transparent outline-none text-white w-full text-sm sm:text-base placeholder:text-indigo-400"
                 placeholder="New password"
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
               />
             </div>
 
-            <button className="w-full py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white">
+            <button className="w-full py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-900 text-white text-sm sm:text-base font-medium hover:opacity-90 transition-opacity">
               Reset Password
             </button>
           </form>

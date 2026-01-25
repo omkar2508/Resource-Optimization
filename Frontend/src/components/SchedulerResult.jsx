@@ -524,7 +524,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
                         <tbody>
                           {sortedTimeSlots.map((timeSlot) => (
                             <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
-                              <td className="border border-gray-300 p-2 sm:p-3 bg-blue-50 font-bold text-blue-700 text-center text-xs sm:text-sm sticky left-0 bg-blue-50 z-10 whitespace-nowrap">
+                              <td className="border border-gray-300 p-1 sm:p-2 md:p-3 bg-blue-50 font-bold text-blue-700 text-center text-[9px] sm:text-xs md:text-sm sticky left-0 bg-blue-50 z-10 whitespace-nowrap">
                                 {formatTimeSlot(timeSlot)}
                               </td>
 
@@ -637,7 +637,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
                       <tbody>
                         {sortedTimeSlots.map((timeSlot) => (
                           <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
-                            <td className="border border-gray-300 p-2 sm:p-3 bg-blue-50 font-bold text-blue-700 text-center text-xs sm:text-sm sticky left-0 bg-blue-50 z-10 whitespace-nowrap">
+                            <td className="border border-gray-300 p-1 sm:p-2 md:p-3 bg-blue-50 font-bold text-blue-700 text-center text-[9px] sm:text-xs md:text-sm sticky left-0 bg-blue-50 z-10 whitespace-nowrap">
                               {formatTimeSlot(timeSlot)}
                             </td>
 

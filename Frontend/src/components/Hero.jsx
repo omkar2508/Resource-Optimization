@@ -84,9 +84,9 @@ export const Hero = () => {
 
               {!isLoggedIn && (
                 <Button
-                  size="lg"
+                  size="sm"
                   variant="outline"
-                  className="border-2 hover:bg-secondary"
+                  className="border-2 hover:bg-secondary whitespace-nowrap w-auto px-3 sm:px-4 text-xs sm:text-sm"
                 >
                   View Demo
                 </Button>
