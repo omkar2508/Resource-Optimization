@@ -56,9 +56,9 @@ export const Navbar = () => {
       <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16">
           {/* Logo - ✅ BRANDING: ResourceOPT */}
-          <Link to="/" className="flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-shrink-0">
+          <Link to="/#hero" className="flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-shrink-0">
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground font-bold text-base sm:text-lg">
+              <span className="text-primary-foreground font-bold text-base sm:text-lg ">
                 R
               </span>
             </div>

@@ -5,7 +5,7 @@ import heroImage from "@/assets/hero-dashboard.png";
 import { useAppContext } from "@/context/AppContext";
 
 export const Hero = () => {
-  const { isLoggedIn, userData, logout, axios } = useAppContext();
+  const { isLoggedIn, userData } = useAppContext();
 
   // ✅ SAFE ROLE-BASED PATH
   const role = userData?.role?.trim().toLowerCase();
@@ -13,11 +13,12 @@ export const Hero = () => {
     role === "teacher" ? "/teacher-timetable" : "/student-timetable";
 
   return (
-    <section
-      className={`relative min-h-screen bg-gradient-hero flex items-center overflow-hidden ${
-        isLoggedIn ? "pt-4" : "pt-16"
-      }`}
-    >
+   <section
+id="hero"
+className={`relative min-h-screen bg-gradient-hero flex items-center overflow-hidden scroll-mt-20 ${
+isLoggedIn ? "pt-4" : "pt-16"
+}`}
+>
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse" />
@@ -28,12 +29,12 @@ export const Hero = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* LEFT CONTENT */}
           <div className="space-y-8 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-sm font-medium text-primary border border-primary/20">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-sm font-medium text-primary border border-primary/20 mx-auto lg:mx-0">
               <Sparkles className="w-4 h-4" />
-              <span>AI-Powered Resource Management</span>
+             <span>Automated Resource Management</span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
               {isLoggedIn ? (
                 <>
                   Welcome back{" "}
@@ -52,29 +53,29 @@ export const Hero = () => {
               )}
             </h1>
 
-            <p className="text-xl text-muted-foreground max-w-2xl">
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0">
               {isLoggedIn
                 ? "Access your timetable, manage resources, and continue where you left off."
                 : "Automate timetable generation, balance faculty workload, and maximize resource utilization with our intelligent dashboard designed for educational institutions."}
             </p>
 
             {/* BUTTONS */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               {isLoggedIn ? (
-                <Link to={timetablePath}>
+                <Link to={timetablePath} className="w-full sm:w-auto">
                   <Button
                     size="lg"
-                    className="bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-lg hover:shadow-glow transition-all duration-300"
+                    className="w-full sm:w-auto bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-lg hover:shadow-glow transition-all duration-300"
                   >
                     View Timetable
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
               ) : (
-                <Link to="/login">
+                <Link to="/login" className="w-full sm:w-auto">
                   <Button
                     size="lg"
-                    className="bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-lg hover:shadow-glow transition-all duration-300"
+                    className="w-full sm:w-auto bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-lg hover:shadow-glow transition-all duration-300"
                   >
                     Get Started
                     <ArrowRight className="ml-2 w-5 h-5" />
@@ -84,9 +85,9 @@ export const Hero = () => {
 
               {!isLoggedIn && (
                 <Button
-                  size="sm"
+                  size="lg"
                   variant="outline"
-                  className="border-2 hover:bg-secondary whitespace-nowrap w-auto px-3 sm:px-4 text-xs sm:text-sm"
+                  className="w-full sm:w-auto border-2 hover:bg-secondary"
                 >
                   View Demo
                 </Button>
@@ -94,7 +95,7 @@ export const Hero = () => {
             </div>
 
             {/* STATS */}
-            <div className="flex gap-8 justify-center lg:justify-start pt-4">
+            <div className="flex flex-wrap gap-6 justify-center lg:justify-start pt-4">
               <div>
                 <div className="text-3xl font-bold text-foreground">100%</div>
                 <div className="text-sm text-muted-foreground">Automation</div>
@@ -113,7 +114,7 @@ export const Hero = () => {
           </div>
 
           {/* RIGHT IMAGE */}
-          <div className="relative">
+          <div className="relative mt-12 lg:mt-0">
             <div className="relative rounded-2xl overflow-hidden shadow-2xl">
               <img
                 src={heroImage}
