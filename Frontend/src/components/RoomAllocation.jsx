@@ -249,39 +249,24 @@ export default function RoomAllocation({
   const filteredRooms = getFilteredRooms();
 
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-2xl p-8 shadow-xl border border-gray-100">
-      <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+    <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-gray-100">
+      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-3">
         <span>Room Assignment</span>
       </h2>
 
-      {/* Info Banner */}
-      <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-        <div className="flex items-start gap-3">
-          <div>
-            <p className="font-semibold text-blue-900 mb-1">How Room Assignment Works:</p>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>1. Select a room from the dropdown below</li>
-              <li>2. Choose what uses it: Divisions (for classrooms) or Subjects/Batches (for labs/tutorials)</li>
-              <li>3. Click "Add Assignment" to confirm</li>
-              <li>4. Repeat for all rooms, then generate timetable</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
       {/* Room Selection Section */}
-      <div className="mb-8 rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+      <div className="mb-6 sm:mb-8 rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
           <span>Step 1: Select Room</span>
         </h3>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           {["all", "Classroom", "Lab", "Tutorial"].map(type => (
             <button
               key={type}
               onClick={() => setFilterType(type)}
-              className={`px-4 py-2 rounded-lg font-semibold transition-all text-sm ${
+              className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition-all text-xs sm:text-sm ${
                 filterType === type
                   ? "bg-blue-600 text-white shadow-md"
                   : "bg-white text-gray-700 hover:bg-gray-100"
@@ -316,10 +301,10 @@ export default function RoomAllocation({
 
         {/* Selected Room Details */}
         {selectedRoom && (
-          <div className="mt-6 bg-white rounded-xl p-6 border-2 border-blue-300 animate-fadeIn">
-            <div className="flex items-center gap-3 mb-4">
+          <div className="mt-4 sm:mt-6 bg-white rounded-xl p-4 sm:p-6 border-2 border-blue-300 animate-fadeIn">
+            <div className="flex items-center gap-3 mb-3 sm:mb-4">
               <div>
-                <h4 className="text-2xl font-bold text-gray-800">{selectedRoom.name}</h4>
+                <h4 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">{selectedRoom.name}</h4>
                 <div className="flex flex-wrap gap-2 mt-1">
                   <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-600 uppercase">
                     {selectedRoom.type}
@@ -343,10 +328,10 @@ export default function RoomAllocation({
 
             {/* Step 2: Assignment Type */}
             <div className="mb-4">
-              <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+              <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
                 <span>Step 2: What Uses This Room?</span>
               </h3>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   type="button"
                   onClick={() => setAssignmentType("division")}
@@ -376,8 +361,8 @@ export default function RoomAllocation({
 
             {/* Step 3: Select Assignments */}
             <div className="mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-800 flex items-center gap-2">
                   <span>Step 3: Select {assignmentType === "division" ? "Divisions" : "Subjects"}</span>
                 </h3>
                 <div className="flex gap-2">
@@ -469,7 +454,7 @@ export default function RoomAllocation({
 
       {/* Assigned Rooms List */}
       <div className="mb-8">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
           <span>Assigned Rooms ({rooms.length})</span>
         </h3>
 
@@ -485,10 +470,10 @@ export default function RoomAllocation({
                 key={room.id}
                 className="bg-white border-2 rounded-xl p-4 hover:shadow-lg transition-shadow"
               >
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h4 className="text-xl font-bold text-gray-800">{room.name}</h4>
+                      <h4 className="text-base sm:text-lg md:text-xl font-bold text-gray-800">{room.name}</h4>
                       <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-600 uppercase">
                         {room.type}
                       </span>
@@ -513,7 +498,7 @@ export default function RoomAllocation({
                   
                   <button
                     onClick={() => removeRoom(room.id)}
-                    className="px-4 py-2 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-colors border border-red-200"
+                    className="px-4 py-2 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-colors border border-red-200 w-full sm:w-auto"
                   >
                     Remove
                   </button>
@@ -525,17 +510,17 @@ export default function RoomAllocation({
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex justify-between gap-4 pt-6 border-t">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3 sm:gap-4 pt-6 border-t">
         <button
           onClick={onBack}
-          className="px-6 py-3 border-2 rounded-xl hover:bg-gray-50 transition-colors font-semibold"
+          className="px-6 py-3 border-2 rounded-xl hover:bg-gray-50 transition-colors font-semibold w-full sm:w-auto"
         >
           Back
         </button>
         <button
           onClick={onGenerate}
           disabled={rooms.length === 0}
-          className="px-10 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          className="px-10 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 w-full sm:w-auto"
         >
           Generate Timetable ({rooms.length} room assignments)
         </button>

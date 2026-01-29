@@ -56,17 +56,14 @@ export default function TeacherTimetable() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-3 sm:p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="pt-0 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6 max-w-6xl mx-auto">
-  <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">
-    Teacher Timetables
-  </h2>
-</div>
-
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100">
+      <div className="pt-5 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6 max-w-6xl mx-auto">
+        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">
+          Teacher Timetables
+        </h2>
 
         {teacherTTs.length === 0 && (
-         <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+          <div className="flex flex-col items-center justify-center h-[60vh] text-center">
   
   {/* Icon */}
   <div className="w-20 h-20 rounded-full
@@ -110,33 +107,29 @@ export default function TeacherTimetable() {
         {teacherTTs.map((tt) => (
           <div
             key={tt.teacher}
-            className="mb-6 sm:mb-8 bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-2xl border border-gray-100 overflow-hidden"
+            className="border p-3 sm:p-4 md:p-6 mb-4 sm:mb-6 bg-white rounded-lg sm:rounded-xl shadow-md"
           >
-            {/* Header Section */}
-            <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-4 sm:p-5 md:p-6 text-white">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 sm:gap-4">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-lg sm:text-xl md:text-2xl mb-2 truncate">{tt.teacher}</h3>
-                  <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-blue-100">
-                    <span>📚 {tt.totalClasses} classes</span>
-                    <span>📅 {tt.days.length} days</span>
-                  </div>
-                </div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div className="min-w-0">
+                <h3 className="font-bold text-base sm:text-lg md:text-xl truncate">
+                  {tt.teacher}
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                  {tt.totalClasses} classes • {tt.days.length} days
+                </p>
+              </div>
 
+              <div className="flex gap-2 w-full sm:w-auto">
                 <button
-                  onClick={() =>
-                    downloadTimetableCSV(tt.timetable, tt.teacher, DAYS)
-                  }
-                  className="px-3 sm:px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-lg text-xs sm:text-sm font-semibold transition-all border border-white/30 whitespace-nowrap w-full sm:w-auto"
+                  onClick={() => downloadTimetableCSV(tt.timetable, tt.teacher, DAYS)}
+                  className="flex-1 sm:flex-initial px-3 py-1.5 sm:py-1 bg-gray-700 hover:bg-gray-800 text-white rounded text-xs sm:text-sm transition-colors whitespace-nowrap"
                 >
-                  📥 Download CSV
+                  Download
                 </button>
               </div>
             </div>
 
-            {/* Timetable Section */}
-            <div className="p-3 sm:p-4 md:p-6 overflow-x-auto">
-              {/*UNIFIED RENDERER - Exact same as generated timetable */}
+            <div className="overflow-x-auto -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6">
               <TimetableTable
                 data={tt.timetable}
                 DAYS={DAYS}

@@ -113,14 +113,19 @@ export default function AdminLayout() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="hidden sm:inline-flex px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
             {adminData?.department || "Admin"}
           </span>
-          <span className="text-sm text-gray-600">
+          <span className="hidden md:inline text-sm text-gray-600">
             Hi, {adminData?.name || "Admin"}
           </span>
-          <button onClick={handleLogout}>Logout</button>
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1.5 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 border border-red-200 transition-colors"
+          >
+            Logout
+          </button>
         </div>
       </header>
 

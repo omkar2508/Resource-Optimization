@@ -93,21 +93,21 @@ const EmailVerify = () => {
             Enter the 6-digit OTP sent to your email
           </p>
 
-          <div className="flex justify-between mb-8">
-            {Array(6)
-              .fill("")
-              .map((_, index) => (
-                <input
-                  key={index}
-                  maxLength={1}
-                  ref={(el) => (inputRefs.current[index] = el)}
-                  className="w-12 h-12 bg-[#333A5C] text-white text-center text-xl rounded-md"
-                  onInput={(e) => handleInput(e, index)}
-                  onKeyDown={(e) => handleKeyDown(e, index)}
-                  onPaste={handlePaste}
-                />
-              ))}
-          </div>
+          <div className="flex justify-center gap-2 mb-8 sm:justify-between">
+  {Array(6)
+    .fill("")
+    .map((_, index) => (
+      <input
+        key={index}
+        maxLength={1}
+        ref={(el) => (inputRefs.current[index] = el)}
+        className="w-10 h-10 sm:w-12 sm:h-12 bg-[#333A5C] text-white text-center text-xl rounded-md"
+        onInput={(e) => handleInput(e, index)}
+        onKeyDown={(e) => handleKeyDown(e, index)}
+        onPaste={handlePaste}
+      />
+    ))}
+</div>
 
           <button className="w-full py-3 bg-gradient-to-r from-indigo-500 to-indigo-900 text-white rounded-full">
             Verify Email

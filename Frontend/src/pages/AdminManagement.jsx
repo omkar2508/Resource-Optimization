@@ -112,21 +112,53 @@ export default function AdminManagement() {
     }
   };
 
-  const handleDeleteAdmin = async (adminId) => {
-    if (!confirm("Are you sure you want to remove this admin?")) return;
+const handleDeleteAdmin = (adminId) => {
+  toast(
+    ({ closeToast }) => (
+      <div>
+        <p className="font-medium mb-3">
+          Are you sure you want to remove this admin?
+        </p>
 
-    try {
-      const res = await axios.delete(`/api/superadmin/admins/${adminId}`);
-      
-      if (res.data.success) {
-        toast.success("Admin removed successfully");
-        fetchAdmins();
-      }
-    } catch (err) {
-      toast.error("Failed to delete admin");
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={closeToast}
+            className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={async () => {
+              try {
+                const res = await axios.delete(
+                  `/api/superadmin/admins/${adminId}`
+                );
+
+                if (res.data.success) {
+                  toast.success("Admin removed successfully");
+                  fetchAdmins();
+                }
+              } catch (err) {
+                toast.error("Failed to delete admin");
+              }
+
+              closeToast();
+            }}
+            className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    ),
+    {
+      autoClose: false,
+      closeOnClick: false,
+      closeButton: false,
     }
-  };
-
+  );
+};
   const startEdit = (admin) => {
     setEditingAdmin(admin);
     setFormData({
@@ -146,11 +178,11 @@ export default function AdminManagement() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
             <Shield className="text-blue-600" />
             Admin Management
           </h1>
@@ -159,7 +191,7 @@ export default function AdminManagement() {
         
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+          className="w-full sm:w-auto justify-center flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700 transition-colors shadow-md"
         >
           <Plus size={20} />
           Create Admin
@@ -168,88 +200,90 @@ export default function AdminManagement() {
 
       {/* Admins List */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="text-left py-4 px-6 font-semibold text-gray-700">Name</th>
-              <th className="text-left py-4 px-6 font-semibold text-gray-700">Email</th>
-              <th className="text-left py-4 px-6 font-semibold text-gray-700">Department</th>
-              <th className="text-left py-4 px-6 font-semibold text-gray-700">Role</th>
-              <th className="text-center py-4 px-6 font-semibold text-gray-700">Status</th>
-              <th className="text-center py-4 px-6 font-semibold text-gray-700">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {admins.map((admin) => (
-              <tr key={admin._id} className="border-t hover:bg-gray-50 transition-colors">
-                <td className="py-4 px-6">
-                  <div className="flex items-center gap-2">
-                    <User className="text-gray-400" size={18} />
-                    <span className="font-medium">{admin.name}</span>
-                  </div>
-                </td>
-                <td className="py-4 px-6">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Mail size={16} />
-                    {admin.email}
-                  </div>
-                </td>
-                <td className="py-4 px-6">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="text-blue-500" size={16} />
-                    <span className="text-sm">{admin.department || "N/A"}</span>
-                  </div>
-                </td>
-                <td className="py-4 px-6">
-                  <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                    admin.role === "superadmin" 
-                      ? "bg-blue-100 text-blue-700" 
-                      : "bg-blue-100 text-blue-700"
-                  }`}>
-                    {admin.role === "superadmin" ? <ShieldCheck size={14} /> : <Shield size={14} />}
-                    {admin.role}
-                  </span>
-                </td>
-                <td className="py-4 px-6 text-center">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                    admin.isActive 
-                      ? "bg-green-100 text-green-700" 
-                      : "bg-red-100 text-red-700"
-                  }`}>
-                    {admin.isActive ? "Active" : "Inactive"}
-                  </span>
-                </td>
-                <td className="py-4 px-6">
-                  {admin.role !== "superadmin" && (
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => startEdit(admin)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleToggleStatus(admin._id)}
-                        className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                        title={admin.isActive ? "Deactivate" : "Activate"}
-                      >
-                        {admin.isActive ? <ShieldOff size={18} /> : <ShieldCheck size={18} />}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAdmin(admin._id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  )}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px]">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700">Name</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700">Email</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700">Department</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700">Role</th>
+                <th className="text-center py-4 px-6 font-semibold text-gray-700">Status</th>
+                <th className="text-center py-4 px-6 font-semibold text-gray-700">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {admins.map((admin) => (
+                <tr key={admin._id} className="border-t hover:bg-gray-50 transition-colors">
+                  <td className="py-4 px-6">
+                    <div className="flex items-center gap-2">
+                      <User className="text-gray-400" size={18} />
+                      <span className="font-medium">{admin.name}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Mail size={16} />
+                      {admin.email}
+                    </div>
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="text-blue-500" size={16} />
+                      <span className="text-sm">{admin.department || "N/A"}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6">
+                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                      admin.role === "superadmin" 
+                        ? "bg-blue-100 text-blue-700" 
+                        : "bg-blue-100 text-blue-700"
+                    }`}>
+                      {admin.role === "superadmin" ? <ShieldCheck size={14} /> : <Shield size={14} />}
+                      {admin.role}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-center">
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                      admin.isActive 
+                        ? "bg-green-100 text-green-700" 
+                        : "bg-red-100 text-red-700"
+                    }`}>
+                      {admin.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6">
+                    {admin.role !== "superadmin" && (
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => startEdit(admin)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleToggleStatus(admin._id)}
+                          className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                          title={admin.isActive ? "Deactivate" : "Activate"}
+                        >
+                          {admin.isActive ? <ShieldOff size={18} /> : <ShieldCheck size={18} />}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAdmin(admin._id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Create/Edit Modal */}

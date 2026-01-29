@@ -23,8 +23,8 @@ export function renderTimetableCell(cell, options = {}) {
 
   if (entries.length === 0) {
     return (
-      <div className="py-4 sm:py-8 text-center">
-        <span className="text-gray-300 font-medium tracking-widest text-[10px] uppercase">
+      <div className="py-3 sm:py-8 text-center">
+        <span className="text-gray-300 font-medium tracking-widest text-[9px] sm:text-[10px] uppercase">
           {filterByBatch !== null ? 'No Class' : '-'}
         </span>
       </div>
@@ -32,7 +32,7 @@ export function renderTimetableCell(cell, options = {}) {
   }
 
   return (
-    <div className="flex flex-col gap-1 min-h-[60px]">
+    <div className="flex flex-col gap-1 min-h-[44px] sm:min-h-[60px]">
       {entries.map((entry, idx) => {
         const isMultiHourLab = entry.type === 'Lab' && entry.lab_part;
         const labPartInfo = isMultiHourLab ? entry.lab_part.split('/') : null;
@@ -49,15 +49,15 @@ export function renderTimetableCell(cell, options = {}) {
         return (
           <div 
             key={idx} 
-            className={`p-2 text-[11px] leading-tight border-l-4 rounded shadow-sm transition-transform hover:scale-[1.02] ${bgColor}`}
+            className={`p-1 sm:p-2 text-[10px] sm:text-[11px] leading-tight border-l-4 rounded shadow-sm transition-transform hover:scale-[1.02] ${bgColor}`}
           >
             {/* Subject Header */}
             <div className="flex justify-between items-start">
-              <span className="font-bold text-gray-800">
+              <span className="font-bold text-gray-800 break-words">
                 {entry.type === "Lab" ? "🧪 " : ""}
                 {entry.subject}
                 {isMultiHourLab && (
-                  <span className="ml-1 text-[9px] bg-purple-200 text-purple-800 px-1 rounded">
+                  <span className="ml-1 text-[8px] sm:text-[9px] bg-purple-200 text-purple-800 px-1 rounded">
                     {currentPart}/{totalParts}
                   </span>
                 )}
@@ -97,7 +97,7 @@ export function renderTimetableCell(cell, options = {}) {
 
               {/* Time slot - Display in 12-hour format */}
               {entry.time_slot && (
-                <div className="flex items-center gap-1.5 text-blue-600 font-semibold text-[9px]">
+                <div className="flex items-center gap-1.5 text-blue-600 font-semibold text-[8px] sm:text-[9px]">
                   <span className="opacity-70">🕒</span> 
                   <span>{formatTimeSlot(entry.time_slot)}</span>
                 </div>
@@ -106,7 +106,7 @@ export function renderTimetableCell(cell, options = {}) {
               {/* Year & Division (for teacher timetables) */}
               {showYearDivision && entry.year && (
                 <div className="mt-1 pt-1 border-t border-gray-200">
-                  <div className="flex items-center gap-1.5 text-[9px] font-medium text-gray-500">
+                  <div className="flex items-center gap-1.5 text-[8px] sm:text-[9px] font-medium text-gray-500">
                     <span className="opacity-70">📚</span>
                     <span>{entry.year} – Div {entry.division}</span>
                   </div>
@@ -207,7 +207,7 @@ export function TimetableTable({ data, DAYS, renderOptions = {} }) {
               {DAYS.map(
                 (d) =>
                   data[d] && (
-                    <th key={d} className="border border-gray-300 p-1.5 sm:p-2 md:p-3 min-w-[140px] sm:min-w-[160px] md:min-w-[180px] text-center text-xs sm:text-sm whitespace-nowrap">
+                    <th key={d} className="border border-gray-300 p-1.5 sm:p-2 md:p-3 min-w-[120px] sm:min-w-[160px] md:min-w-[180px] text-center text-xs sm:text-sm whitespace-nowrap">
                       {d}
                     </th>
                   )
@@ -233,7 +233,7 @@ export function TimetableTable({ data, DAYS, renderOptions = {} }) {
                 {DAYS.map(
                   (d) =>
                     data[d] && (
-                      <td key={d} className="border border-gray-300 p-1.5 sm:p-2 md:p-3 align-top min-h-[80px] sm:min-h-[90px] md:min-h-[110px]">
+                      <td key={d} className="border border-gray-300 p-1 sm:p-2 md:p-3 align-top min-h-[60px] sm:min-h-[90px] md:min-h-[110px]">
                         {renderTimetableCell(data[d][timeSlot], renderOptions)}
                       </td>
                     )

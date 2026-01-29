@@ -83,13 +83,15 @@ export const Hero = () => {
               )}
 
               {!isLoggedIn && (
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-2 hover:bg-secondary"
-                >
-                  View Demo
-                </Button>
+                <Link to="/#workflow" className="w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-2 hover:bg-secondary w-full sm:w-auto"
+                  >
+                    View Demo
+                  </Button>
+                </Link>
               )}
             </div>
 

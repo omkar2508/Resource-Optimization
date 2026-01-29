@@ -36,7 +36,7 @@ export default function IndividualTeacherTimetable() {
           if (teacherMap) {
             console.log(` Built timetable for ${userData.name}`);
           } else {
-            console.log(`⚠️ No timetable found for ${userData.name}`);
+            console.log(` No timetable found for ${userData.name}`);
           }
         }
       } catch (err) {
@@ -76,19 +76,19 @@ export default function IndividualTeacherTimetable() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 pb-10">
       <Navbar />
 
-      <div className="p-10 max-w-7xl mx-auto pt-24">
-        <div className="mb-8">
-          <h2 className="text-4xl font-bold text-gray-800 mb-2">
+      <div className="pt-16 sm:pt-20 md:pt-24 px-4 sm:px-6 md:px-8 lg:px-10 pb-10 max-w-7xl mx-auto">
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2">
             My Teaching Timetable
           </h2>
-          <p className="text-lg text-gray-600">👤 {userData.name}</p>
+          <p className="text-sm sm:text-base text-gray-600">👤 {userData.name}</p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
           {/* Header Section */}
-          <div className="bg-white p-6 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-2xl text-gray-800">
+          <div className="bg-white p-3 sm:p-4 md:p-6 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <h3 className="font-bold text-base sm:text-lg md:text-2xl text-gray-800">
                 Weekly Schedule
               </h3>
 
@@ -96,7 +96,7 @@ export default function IndividualTeacherTimetable() {
                 onClick={() =>
                   downloadTimetableCSV(teacherTT, userData.name, DAYS)
                 }
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg"
+                className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-semibold transition-all shadow-md hover:shadow-lg"
               >
                 📥 Download CSV
               </button>
@@ -104,7 +104,7 @@ export default function IndividualTeacherTimetable() {
           </div>
 
           {/* Timetable Section */}
-          <div className="p-6">
+          <div className="p-3 sm:p-4 md:p-6 overflow-x-auto">
             {/*UNIFIED RENDERER - Exact same as generated timetable */}
             <TimetableTable
               data={teacherTT}

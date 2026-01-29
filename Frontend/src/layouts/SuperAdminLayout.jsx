@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
 import { assets } from "../assets/assets";
 import toast from "react-hot-toast";
+
 import { Menu, X, Shield, Users, BarChart3, LogOut } from "lucide-react";
 
 export default function SuperAdminLayout() {
@@ -32,7 +33,7 @@ export default function SuperAdminLayout() {
   }, [isMobile, isSidebarOpen]);
 
   const handleLogout = async () => {
-    if (!confirm("Are you sure you want to logout?")) return;
+   
     
     try {
       await adminLogout();

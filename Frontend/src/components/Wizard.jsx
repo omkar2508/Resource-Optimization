@@ -332,24 +332,25 @@
         <div className="bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-3xl font-bold text-white mb-2">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">
                 Configuration Wizard
               </h2>
               <p className="text-blue-100">
                 {stepTitles[step - 1].title}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {step < 4 && (
                 <button
                   onClick={handleExportConfig}
-                  className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white font-medium text-sm border border-white/30 hover:bg-white/30 transition-all flex items-center gap-2"
+                  className="px-2.5 sm:px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white font-medium text-xs sm:text-sm border border-white/30 hover:bg-white/30 transition-all flex items-center gap-2"
                 >
                   <span>💾</span>
-                  Export Config
+                  <span className="hidden sm:inline">Export Config</span>
+                  <span className="sm:hidden">Export</span>
                 </button>
               )}
-              <div className="px-5 py-3 bg-white/20 backdrop-blur-sm rounded-xl text-white font-bold text-lg border border-white/30">
+              <div className="px-3 sm:px-5 py-2 sm:py-3 bg-white/20 backdrop-blur-sm rounded-xl text-white font-bold text-xs sm:text-lg border border-white/30 whitespace-nowrap">
                 Step {step} of 4
               </div>
             </div>
