@@ -1,10 +1,9 @@
-  // Wizard.jsx - FIXED: Proper room mapping structure for solver
   import React, { useState, useMemo, useEffect } from "react";
   import YearPanel from "./YearPanel";
   import TeacherForm from "./TeacherForm";
   import RoomAllocation from "./RoomAllocation";
   import SchedulerResult from "./SchedulerResult";
-  import axios from "axios";
+  import axiosInstance from "../utils/axiosInstance";
 
   function calculatePeriodsPerDay(timeConfig) {
     if (!timeConfig) return 6;
@@ -120,10 +119,11 @@
       });
     }, [yearData]);
 
-    // ✅ FIXED: Build room mappings that solver can understand
     const buildRoomMappingsForSolver = () => {
       const mappings = {};
-      
+      console.log("TEACHERS SENT:", teachers);
+      console.log("TEACHER SUBJECTS:", teachers[0].subjects);
+
       console.log("🔧 Building room mappings from assignments:", rooms);
       
       rooms.forEach(room => {
@@ -138,21 +138,17 @@
           const subjectCode = assignment.code;
           
           if (!subjectCode) {
-            // Division assignment (classroom)
             console.log(`  → Division assignment: ${year} Div ${assignment.division}`);
             return;
           }
           
-          // Subject assignment (lab/tutorial)
           const subjectType = assignment.type;
           const totalBatches = assignment.totalBatches || 1;
           
-          // ✅ Create mapping key: "year_subjectCode_type"
           const mappingKey = `${year}_${subjectCode}_${subjectType}`;
           
           console.log(`  → Subject assignment: ${subjectCode} (${subjectType}) - ${totalBatches} batches`);
           
-          // ✅ CRITICAL: Map ALL batches to THIS room
           const batchMappings = [];
           for (let batchNum = 1; batchNum <= totalBatches; batchNum++) {
             batchMappings.push({
@@ -160,7 +156,7 @@
               room: roomId,
               roomName: roomName
             });
-            console.log(`    ✅ Mapped batch ${batchNum} → ${roomName}`);
+            console.log(`   Mapped batch ${batchNum} → ${roomName}`);
           }
           
           mappings[mappingKey] = {
@@ -209,23 +205,23 @@
           return;
         }
 
-        // ✅ Build proper room mappings
         const roomMappings = buildRoomMappingsForSolver();
 
         const payload = {
           years: yearData,
           teachers: teachers,
           rooms: rooms,
-          roomMappings: roomMappings  // ✅ Send properly structured mappings
+          roomMappings: roomMappings
         };
 
         console.log("📤 Sending payload with room mappings:", payload);
 
-        const res = await axios.post(
+        const res = await axiosInstance.post(
           `${import.meta.env.VITE_BACKEND_URL}/api/scheduler/generate`,
           payload
         );
-
+        
+        console.log("SOLVER RESPONSE:", res.data);
         const timetable = res.data.timetable || res.data;
         if (!timetable) {
           alert("Invalid scheduler response");
@@ -284,7 +280,7 @@
       }
 
       try {
-        const res = await axios.post(
+        const res = await axiosInstance.post(
           `${import.meta.env.VITE_BACKEND_URL}/api/timetable/save`,
           payload
         );
@@ -333,28 +329,28 @@
 
     return (
       <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 w-full max-w-6xl mx-auto overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
+        <div className="bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 p-6">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">
                 Configuration Wizard
               </h2>
-              <p className="text-blue-100 text-sm sm:text-base">
+              <p className="text-blue-100">
                 {stepTitles[step - 1].title}
               </p>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-2 sm:gap-3">
               {step < 4 && (
                 <button
                   onClick={handleExportConfig}
-                  className="px-2 sm:px-4 py-1.5 sm:py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white font-medium text-xs sm:text-sm border border-white/30 hover:bg-white/30 transition-all flex items-center gap-1 sm:gap-2 flex-shrink-0"
+                  className="px-2.5 sm:px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white font-medium text-xs sm:text-sm border border-white/30 hover:bg-white/30 transition-all flex items-center gap-2"
                 >
-                  <span className="text-sm sm:text-base">💾</span>
+                  <span>💾</span>
                   <span className="hidden sm:inline">Export Config</span>
                   <span className="sm:hidden">Export</span>
                 </button>
               )}
-              <div className="px-3 sm:px-5 py-2 sm:py-3 bg-white/20 backdrop-blur-sm rounded-xl text-white font-bold text-xs sm:text-sm md:text-lg border border-white/30 whitespace-nowrap">
+              <div className="px-3 sm:px-5 py-2 sm:py-3 bg-white/20 backdrop-blur-sm rounded-xl text-white font-bold text-xs sm:text-lg border border-white/30 whitespace-nowrap">
                 Step {step} of 4
               </div>
             </div>

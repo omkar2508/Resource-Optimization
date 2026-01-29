@@ -21,7 +21,6 @@ export default function SubjectsPanel({ year, yearData, setYearData }) {
   const [selectedSemester, setSelectedSemester] = useState(SEM_MAP[year][0]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch subjects from backend when year or semester changes
   useEffect(() => {
     const loadRelevantSubjects = async () => {
       setLoading(true);

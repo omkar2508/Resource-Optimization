@@ -148,11 +148,6 @@ const AddRoom = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 py-4 sm:py-6 md:py-10 px-4">
-      {/* HEADER */}
-      {/* <div className="max-w-6xl mx-auto mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2"> Room Infrastructure</h1>
-        <p className="text-gray-600">Define room resources (metadata only - no assignments yet)</p>
-      </div> */}
 
       {/* ADD ROOM FORM */}
       <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-8 max-w-6xl mx-auto border">
@@ -278,12 +273,6 @@ const AddRoom = () => {
           </button>
         </div>
 
-        {/* <div className="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
-          <p className="text-sm text-yellow-800">
-            <strong> Note:</strong> This page only stores room metadata. Subject/division/batch assignments 
-            happen in <strong>Wizard Step 3</strong> during timetable generation.
-          </p>
-        </div> */}
       </div>
 
       {/* ROOMS TABLE */}

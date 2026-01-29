@@ -1,6 +1,5 @@
-// src/pages/SavedTimetable.jsx - FIXED: Uses unified renderer
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axiosInstance from "../utils/axiosInstance";
 import { toast } from "react-toastify";
 import { TimetableTable, downloadTimetableCSV } from "../utils/renderTimetableCell.jsx";
 import { useNavigate } from "react-router-dom";
@@ -14,13 +13,24 @@ export default function SavedTimetable() {
 
   const fetchTimetables = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/timetable/all`);
+      const res = await axiosInstance.get("/api/timetable/all");
+      
+      console.log("Fetch response:", res.data);
+      
       if (res.data.success) {
         setTimetables(res.data.timetables);
+        console.log(` Loaded ${res.data.timetables.length} timetables`);
       }
     } catch (err) {
       console.error("Fetch error:", err);
-      toast.error("Failed to fetch saved timetables");
+      console.error("Error response:", err.response?.data);
+      
+      if (err.response?.status === 401) {
+        toast.error("Session expired. Please login again.");
+        navigate("/admin/login");
+      } else {
+        toast.error(err.response?.data?.message || "Failed to fetch saved timetables");
+      }
     } finally {
       setLoading(false);
     }
@@ -67,10 +77,7 @@ export default function SavedTimetable() {
 
   const handleDeleteTimetable = async (id) => {
     try {
-      const { data } = await axios.delete(
-        `${import.meta.env.VITE_BACKEND_URL}/api/timetable/delete/${id}`,
-        { withCredentials: true }
-      );
+      const { data } = await axiosInstance.delete(`/api/timetable/delete/${id}`);
 
       if (data.success) {
         toast.success("Timetable deleted successfully");
@@ -78,7 +85,7 @@ export default function SavedTimetable() {
       }
     } catch (err) {
       console.error("Delete error:", err);
-      toast.error("Failed to delete timetable");
+      toast.error(err.response?.data?.message || "Failed to delete timetable");
     }
   };
 
@@ -113,7 +120,7 @@ export default function SavedTimetable() {
 
   {/* Description */}
   <p className="text-gray-500 max-w-md mb-6">
-    You haven’t generated or saved any timetables yet.
+    You haven't generated or saved any timetables yet.
     Start by configuring years, subjects, teachers, and rooms.
   </p>
 
@@ -126,7 +133,7 @@ export default function SavedTimetable() {
                shadow-lg hover:shadow-xl
                transition-all flex items-center gap-2"
   >
-    <span></span>
+    <span>⚡</span>
     Generate Your First Timetable
   </button>
 
@@ -145,7 +152,7 @@ export default function SavedTimetable() {
         >
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
             <h3 className="font-bold text-base sm:text-lg md:text-xl">
-              {item.year} — Division {item.division}
+              {item.year} – Division {item.division}
             </h3>
 
             <div className="flex gap-2 w-full sm:w-auto">
@@ -171,15 +178,14 @@ export default function SavedTimetable() {
             </div>
           </div>
 
-          {/* ✅ UNIFIED RENDERER - Same as generated timetable */}
           <div className="overflow-x-auto -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6">
             <TimetableTable 
               data={item.timetableData} 
               DAYS={DAYS}
               renderOptions={{
-                showYearDivision: false,  // Don't show year/div in class timetables
-                filterByBatch: null,       // No batch filtering
-                highlightBatch: false      // No highlighting
+                showYearDivision: false,  
+                filterByBatch: null,      
+                highlightBatch: false    
               }}
             />
           </div>

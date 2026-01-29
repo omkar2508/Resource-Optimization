@@ -15,7 +15,6 @@ export default function YearPanel({
   const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const [loadingSubjects, setLoadingSubjects] = useState({});
 
-  // Load subjects for each selected year and semester
   useEffect(() => {
     const loadAllSubjects = async () => {
       for (const year of selectedYears) {
@@ -35,7 +34,6 @@ export default function YearPanel({
         `/api/subjects/filter?year=${year}&semester=${semester}`,
       );
       if (data.success) {
-        // ✅ Transform component-based subjects to flat structure for timetable generation
         const flattenedSubjects = flattenSubjects(data.subjects);
 
         setYearData((prev) => ({

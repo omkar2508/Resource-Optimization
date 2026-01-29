@@ -1,11 +1,4 @@
-// src/utils/subjectTransformer.js
-// Transforms component-based subjects to flat structure for timetable generation
 
-/**
- * Converts subjects with components to flat subject list
- * @param {Array} subjects - Array of subjects with components
- * @returns {Array} - Flattened array of subjects (one per component)
- */
 export function flattenSubjects(subjects) {
   const flattened = [];
   

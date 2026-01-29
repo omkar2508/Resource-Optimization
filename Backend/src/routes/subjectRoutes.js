@@ -1,4 +1,5 @@
 import express from "express";
+import { adminAuth } from "../middleware/adminAuth.js";
 import { 
   addSubject, 
   getSubjectsByFilter, 
@@ -9,10 +10,11 @@ import {
 
 const router = express.Router();
 
-router.post("/add", addSubject);
-router.get("/filter", getSubjectsByFilter);
-router.get("/all", getAllSubjects);
-router.put("/update/:id", updateSubject);
-router.delete("/delete/:id", deleteSubject);
+//All routes now require admin authentication
+router.post("/add", adminAuth, addSubject);
+router.get("/filter", adminAuth, getSubjectsByFilter);
+router.get("/all", adminAuth, getAllSubjects);
+router.put("/update/:id", adminAuth, updateSubject);
+router.delete("/delete/:id", adminAuth, deleteSubject);
 
 export default router;

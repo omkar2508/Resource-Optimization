@@ -1,10 +1,6 @@
-// testRoomCreation.js - Run this to test direct room creation
-// Save this file in your backend folder and run: node testRoomCreation.js
-
 import mongoose from "mongoose";
 
-// Update this with your MongoDB connection string
-const MONGODB_URI = "mongodb://localhost:27017/mern-auth"; // or your actual URI
+const MONGODB_URI = "mongodb://localhost:27017/mern-auth";  
 
 const roomSchema = new mongoose.Schema({
     name: { type: String, required: true, unique: true },
@@ -42,7 +38,7 @@ async function testRoomCreation() {
     try {
         console.log("🔌 Connecting to MongoDB...");
         await mongoose.connect(MONGODB_URI);
-        console.log("✅ Connected to MongoDB");
+        console.log(" Connected to MongoDB");
 
         const RoomModel = mongoose.model("room", roomSchema);
 
@@ -55,7 +51,7 @@ async function testRoomCreation() {
         });
         
         const savedClassroom = await classroom.save();
-        console.log("✅ Classroom created:", savedClassroom.name);
+        console.log(" Classroom created:", savedClassroom.name);
 
         // Test 2: Create a lab with category
         console.log("\n📝 Test 2: Creating a lab...");
@@ -71,12 +67,12 @@ async function testRoomCreation() {
         });
         
         const savedLab = await lab.save();
-        console.log("✅ Lab created:", savedLab.name);
+        console.log(" Lab created:", savedLab.name);
 
         // Verify rooms were created
         console.log("\n📊 Fetching all rooms...");
         const allRooms = await RoomModel.find({});
-        console.log(`✅ Total rooms in database: ${allRooms.length}`);
+        console.log(` Total rooms in database: ${allRooms.length}`);
         
         allRooms.forEach(room => {
             console.log(`  - ${room.name} (${room.type})`);
@@ -85,12 +81,12 @@ async function testRoomCreation() {
         // Cleanup test rooms
         console.log("\n🧹 Cleaning up test rooms...");
         await RoomModel.deleteMany({ name: { $in: ["TEST_ROOM_1", "TEST_LAB_1"] } });
-        console.log("✅ Test rooms deleted");
+        console.log(" Test rooms deleted");
 
-        console.log("\n✅ All tests passed! Your room model is working correctly.");
+        console.log("\n All tests passed! Your room model is working correctly.");
         
     } catch (error) {
-        console.error("\n❌ Error during test:");
+        console.error("\n Error during test:");
         console.error("Error name:", error.name);
         console.error("Error message:", error.message);
         console.error("Error stack:", error.stack);

@@ -1,4 +1,3 @@
-// src/lib/ProtectedRoute.tsx  <-- must match extension and path
 import { Navigate } from "react-router-dom";
 const ProtectedRoute = ({
   children

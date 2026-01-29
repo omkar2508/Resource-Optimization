@@ -19,7 +19,7 @@ def get_room_for_subject(subject_code, component_type, batch, room_mappings, roo
         print(f"⚠️ No room mapping found for {mapping_key}")
         return None
     
-    print(f"✅ Found mapping: {mapping}")
+    print(f" Found mapping: {mapping}")
     
     if component_type == "Theory":
         room_id = mapping.get("roomId")
@@ -32,7 +32,7 @@ def get_room_for_subject(subject_code, component_type, batch, room_mappings, roo
             room_name_match = room.get("name") == room_name if room_name else False
             
             if room_id_match or room_name_match:
-                print(f"✅ Found assigned room for {subject_code}: {room.get('name')}")
+                print(f" Found assigned room for {subject_code}: {room.get('name')}")
                 return room
     else:
         batches = mapping.get("batches", [])
@@ -51,7 +51,7 @@ def get_room_for_subject(subject_code, component_type, batch, room_mappings, roo
                     room_name_match = room.get("name") == room_name if room_name else False
                     
                     if room_id_match or room_name_match:
-                        print(f"✅ Found assigned room for {subject_code} batch {batch}: {room.get('name')}")
+                        print(f" Found assigned room for {subject_code} batch {batch}: {room.get('name')}")
                         return room
     
     print(f"⚠️ Room not found in rooms list for {subject_code} batch {batch}")
@@ -73,7 +73,7 @@ def get_compatible_rooms_for_subject(rooms, subject_code, room_type, year=None, 
     if room_mappings:
         assigned_room = get_room_for_subject(subject_code, room_type, batch, room_mappings, rooms, year)
         if assigned_room:
-            print(f"✅ Using assigned room from mappings: {assigned_room.get('name')} for {subject_code} batch {batch}")
+            print(f" Using assigned room from mappings: {assigned_room.get('name')} for {subject_code} batch {batch}")
             return [assigned_room]
     
     # Priority 2-4: Filter by year and type
@@ -118,6 +118,6 @@ def get_compatible_rooms_for_subject(rooms, subject_code, room_type, year=None, 
     if len(result) == 0:
         print(f"⚠️ No compatible rooms found for {room_type} - {subject_code}")
     else:
-        print(f"✅ Found {len(result)} compatible rooms for {room_type} - {subject_code}")
+        print(f" Found {len(result)} compatible rooms for {room_type} - {subject_code}")
     
     return result

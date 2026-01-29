@@ -7,14 +7,12 @@ import { Navbar } from "../components/Navbar";
 const EmailVerify = () => {
   const navigate = useNavigate();
 
-  // ✅ use axios from AppContext ONLY
+  //use axios from AppContext ONLY
   const { axios, userData, getUserData } = useAppContext();
 
   const inputRefs = useRef([]);
 
-  // ==========================
   // OTP INPUT HANDLERS
-  // ==========================
   const handleInput = (e, index) => {
     if (e.target.value && index < 5) {
       inputRefs.current[index + 1].focus();
@@ -36,9 +34,7 @@ const EmailVerify = () => {
     });
   };
 
-  // ==========================
   // VERIFY OTP
-  // ==========================
   const onSubmitHandler = async (e) => {
     e.preventDefault();
 
@@ -66,9 +62,7 @@ const EmailVerify = () => {
     }
   };
 
-  // ==========================
   // AUTO SEND OTP ON PAGE LOAD
-  // ==========================
   useEffect(() => {
     const sendOtp = async () => {
       try {
@@ -86,36 +80,36 @@ const EmailVerify = () => {
     <div className="relative min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100">
       <Navbar />
 
-      <div className="flex items-center justify-center min-h-screen px-4 sm:px-6 py-8 sm:py-0">
+      <div className="flex items-center justify-center min-h-screen px-6">
         <form
           onSubmit={onSubmitHandler}
-          className="bg-slate-900 p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-sm text-sm"
+          className="bg-slate-900 p-8 rounded-lg shadow-lg w-full max-w-sm text-sm"
         >
-          <h1 className="text-white text-xl sm:text-2xl font-semibold text-center mb-3 sm:mb-4">
+          <h1 className="text-white text-2xl font-semibold text-center mb-4">
             Email Verification
           </h1>
 
-          <p className="text-center mb-4 sm:mb-6 text-indigo-300 text-xs sm:text-sm">
+          <p className="text-center mb-6 text-indigo-300">
             Enter the 6-digit OTP sent to your email
           </p>
 
-          <div className="flex justify-between gap-1.5 sm:gap-2 mb-6 sm:mb-8">
-            {Array(6)
-              .fill("")
-              .map((_, index) => (
-                <input
-                  key={index}
-                  maxLength={1}
-                  ref={(el) => (inputRefs.current[index] = el)}
-                  className="w-10 h-10 sm:w-12 sm:h-12 bg-[#333A5C] text-white text-center text-lg sm:text-xl rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  onInput={(e) => handleInput(e, index)}
-                  onKeyDown={(e) => handleKeyDown(e, index)}
-                  onPaste={handlePaste}
-                />
-              ))}
-          </div>
+          <div className="flex justify-center gap-2 mb-8 sm:justify-between">
+  {Array(6)
+    .fill("")
+    .map((_, index) => (
+      <input
+        key={index}
+        maxLength={1}
+        ref={(el) => (inputRefs.current[index] = el)}
+        className="w-10 h-10 sm:w-12 sm:h-12 bg-[#333A5C] text-white text-center text-xl rounded-md"
+        onInput={(e) => handleInput(e, index)}
+        onKeyDown={(e) => handleKeyDown(e, index)}
+        onPaste={handlePaste}
+      />
+    ))}
+</div>
 
-          <button className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-indigo-500 to-indigo-900 text-white rounded-full text-sm sm:text-base font-medium hover:opacity-90 transition-opacity">
+          <button className="w-full py-3 bg-gradient-to-r from-indigo-500 to-indigo-900 text-white rounded-full">
             Verify Email
           </button>
         </form>

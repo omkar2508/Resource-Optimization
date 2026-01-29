@@ -17,7 +17,7 @@ export const Navbar = () => {
   const isAdminLogin = location.pathname === "/admin/login";
   const isAdminDashboard = location.pathname === "/admin/dashboard";
 
-  // ✅ GET CONTEXT FIRST
+  //GET CONTEXT FIRST
   const { isLoggedIn, userData, logout, axios } = useAppContext();
   const navbarClass = `
     fixed top-0 left-0 w-full z-50
@@ -31,7 +31,7 @@ export const Navbar = () => {
     shadow-sm
   `;
 
-  // ✅ SAFE ROLE-BASED PATH
+  //SAFE ROLE-BASED PATH
   const role = userData?.role?.trim().toLowerCase();
 
   console.log("ROLE FROM DB:", role);
@@ -55,10 +55,10 @@ export const Navbar = () => {
     <nav className={navbarClass}>
       <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16">
-          {/* Logo - ✅ BRANDING: ResourceOPT */}
-          <Link to="/#hero" className="flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-shrink-0">
+          {/* Logo -BRANDING: ResourceOPT */}
+          <Link to="/" className="flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-shrink-0">
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground font-bold text-base sm:text-lg ">
+              <span className="text-primary-foreground font-bold text-base sm:text-lg">
                 R
               </span>
             </div>
@@ -78,7 +78,7 @@ export const Navbar = () => {
           <div className="hidden md:flex items-center space-x-3 lg:space-x-4">
             {isLoggedIn && userData ? (
               <div className="relative group">
-                {/* ✅ SHOW "Hi, Admin" or "Hi, [Name]" */}
+                {/*SHOW "Hi, Admin" or "Hi, [Name]" */}
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-700 font-medium">
                     Hi, {userData.role === "admin" ? "Admin" : userData.name?.split(' ')[0] || "User"}
@@ -109,7 +109,7 @@ export const Navbar = () => {
                       </button>
                     )}
 
-                    {/* ✅ CHANGED: "Out" → "Logout" */}
+                    {/*CHANGED: "Out" → "Logout" */}
                     <button
                       onClick={logout}
                       className="px-4 py-2 text-sm text-left bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
@@ -180,7 +180,7 @@ export const Navbar = () => {
               {/* Mobile Auth Section */}
               {isLoggedIn && userData ? (
                 <div className="pt-3 border-t border-border space-y-2">
-                  {/* ✅ SHOW "Hi, Admin" on mobile */}
+                  {/*SHOW "Hi, Admin" on mobile */}
                   <div className="px-3 py-2 text-sm font-medium text-gray-700">
                     Hi, {userData.role === "admin" ? "Admin" : userData.name?.split(' ')[0] || "User"}
                   </div>
@@ -207,7 +207,7 @@ export const Navbar = () => {
                       Profile
                     </button>
                   )}
-                  {/* ✅ CHANGED: Mobile "Out" → "Logout" */}
+                  {/*CHANGED: Mobile "Out" → "Logout" */}
                   <button
                     onClick={() => {
                       logout();

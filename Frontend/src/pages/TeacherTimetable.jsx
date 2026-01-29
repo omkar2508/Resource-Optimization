@@ -1,6 +1,5 @@
-// src/pages/TeacherTimetable.jsx - UPDATED: Matches SavedTimetable styling exactly
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axiosInstance from "../utils/axiosInstance"; 
 import {
   TimetableTable,
   downloadTimetableCSV,
@@ -12,22 +11,32 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export default function TeacherTimetable() {
   const [teacherTTs, setTeacherTTs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
 
   useEffect(() => {
     const fetchAndBuild = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/timetable/all`);
+        const res = await axiosInstance.get("/api/timetable/all");
+        
+        console.log("Teacher timetable fetch response:", res.data);
+        
         if (res.data.success) {
-          // Build teacher timetables dynamically from class timetables
           const teacherMap = buildTeacherTimetablesFromClass(
             res.data.timetables || []
           );
           setTeacherTTs(teacherMap);
+          console.log(` Built ${teacherMap.length} teacher timetables`);
         }
       } catch (err) {
         console.error("Fetch error:", err);
-        alert("Failed to fetch timetables");
+        console.error("Error response:", err.response?.data);
+        
+        if (err.response?.status === 401) {
+          alert("Session expired. Please login again.");
+          navigate("/admin/login");
+        } else {
+          alert(err.response?.data?.message || "Failed to fetch timetables");
+        }
       }
       setLoading(false);
     };
@@ -37,9 +46,11 @@ export default function TeacherTimetable() {
 
   if (loading) {
     return (
-      <div className="p-6 flex flex-col items-center justify-center">
+      <div className="p-6 flex flex-col items-center justify-center min-h-screen">
         <div className="h-10 w-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-3 text-blue-600 font-medium">Building teacher timetables…</p>
+        <p className="mt-3 text-blue-600 font-medium">
+          Building teacher timetables…
+        </p>
       </div>
     );
   }
@@ -47,40 +58,50 @@ export default function TeacherTimetable() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100">
       <div className="pt-5 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6 max-w-6xl mx-auto">
-        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Teacher Timetables</h2>
+        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">
+          Teacher Timetables
+        </h2>
 
         {teacherTTs.length === 0 && (
           <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-            {/* Icon */}
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center mb-6">
-              <span className="text-4xl">📅</span>
-            </div>
+  
+  {/* Icon */}
+  <div className="w-20 h-20 rounded-full
+                  bg-gradient-to-br from-blue-100 to-cyan-100
+                  flex items-center justify-center mb-6">
+    <span className="text-4xl">📅</span>
+  </div>
 
-            {/* Title */}
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              No Timetables Yet
-            </h2>
+  {/* Title */}
+  <h2 className="text-2xl font-bold text-gray-800 mb-2">
+    No Timetables Yet
+  </h2>
 
-            {/* Description */}
-            <p className="text-gray-500 max-w-md mb-6">
-              You haven't generated or saved any timetables yet.
-              Start by configuring years, subjects, teachers, and rooms.
-            </p>
+  {/* Description */}
+  <p className="text-gray-500 max-w-md mb-6">
+    You haven't generated or saved any timetables yet.
+    Start by configuring years, subjects, teachers, and rooms.
+  </p>
 
-            {/* Primary Action */}
-            <button
-              onClick={() => navigate("/admin/dashboard")}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-            >
-              <span>⚡</span>
-              Generate Your First Timetable
-            </button>
+  {/* Primary Action */}
+  <button
+    onClick={() => navigate("/admin/dashboard")}
+    className="px-6 py-3
+               bg-gradient-to-r from-blue-600 to-cyan-400
+               text-white font-semibold rounded-xl
+               shadow-lg hover:shadow-xl
+               transition-all flex items-center gap-2"
+  >
+    <span>⚡</span>
+    Generate Your First Timetable
+  </button>
 
-            {/* Secondary Hint */}
-            <p className="mt-4 text-xs text-blue-600">
-              You can always edit and regenerate later
-            </p>
-          </div>
+  {/* Secondary Hint */}
+  <p className="mt-4 text-xs text-blue-600">
+    You can always edit and regenerate later
+  </p>
+</div>
+
         )}
 
         {teacherTTs.map((tt) => (
@@ -89,23 +110,25 @@ export default function TeacherTimetable() {
             className="border p-3 sm:p-4 md:p-6 mb-4 sm:mb-6 bg-white rounded-lg sm:rounded-xl shadow-md"
           >
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
-              <h3 className="font-bold text-base sm:text-lg md:text-xl">
-                {tt.teacher}
-              </h3>
+              <div className="min-w-0">
+                <h3 className="font-bold text-base sm:text-lg md:text-xl truncate">
+                  {tt.teacher}
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                  {tt.totalClasses} classes • {tt.days.length} days
+                </p>
+              </div>
 
               <div className="flex gap-2 w-full sm:w-auto">
                 <button
-                  onClick={() =>
-                    downloadTimetableCSV(tt.timetable, tt.teacher, DAYS)
-                  }
-                  className="flex-1 sm:flex-initial px-3 py-1.5 sm:py-1 bg-gray-700 hover:bg-gray-800 text-white rounded text-xs sm:text-sm transition-colors"
+                  onClick={() => downloadTimetableCSV(tt.timetable, tt.teacher, DAYS)}
+                  className="flex-1 sm:flex-initial px-3 py-1.5 sm:py-1 bg-gray-700 hover:bg-gray-800 text-white rounded text-xs sm:text-sm transition-colors whitespace-nowrap"
                 >
                   Download
                 </button>
               </div>
             </div>
 
-            {/* ✅ UNIFIED RENDERER - Same as saved timetable */}
             <div className="overflow-x-auto -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6">
               <TimetableTable
                 data={tt.timetable}
@@ -124,11 +147,6 @@ export default function TeacherTimetable() {
   );
 }
 
-/**
- * Build teacher timetables DYNAMICALLY from class timetables
- * ✅ CRITICAL: Preserves TIME SLOTS, not period numbers
- * ✅ CRITICAL: Preserves lab_part for multi-hour continuous labs
- */
 function buildTeacherTimetablesFromClass(classTimetables) {
   const teacherMap = {};
 
@@ -163,7 +181,7 @@ function buildTeacherTimetablesFromClass(classTimetables) {
           }
 
           // Add this class to teacher's timetable
-          // ✅ PRESERVE ALL FIELDS including lab_part for multi-hour labs
+          //PRESERVE ALL FIELDS including lab_part for multi-hour labs
           teacherMap[teacher][day][timeSlot].push({
             subject: entry.subject,
             type: entry.type,
@@ -173,8 +191,8 @@ function buildTeacherTimetablesFromClass(classTimetables) {
             room: entry.room,
             batch: entry.batch,
             time_slot: timeSlot,
-            lab_part: entry.lab_part, // ✅ CRITICAL: Preserve lab_part (e.g., "1/2", "2/2")
-            lab_session_id: entry.lab_session_id, // ✅ CRITICAL: Preserve session ID for grouping
+            lab_part: entry.lab_part, //CRITICAL: Preserve lab_part (e.g., "1/2", "2/2")
+            lab_session_id: entry.lab_session_id, //CRITICAL: Preserve session ID for grouping
           });
         });
       });

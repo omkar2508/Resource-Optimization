@@ -1,6 +1,5 @@
-// src/pages/SchedulerResult1.jsx - UPDATED: Uses unified renderer
 import React from "react";
-import axios from "axios";
+import axiosInstance from "../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
 import { renderTimetableCell, downloadTimetableCSV } from "../utils/renderTimetableCell";
 import { formatTimeSlot } from "../utils/timeFormat";
@@ -56,29 +55,24 @@ export default function SchedulerResult({ result, onBack, onSave }) {
   const allConflicts = [...conflicts, ...roomConflicts];
   const hasIssues = unallocated.length > 0 || allConflicts.length > 0 || criticalIssues.length > 0;
 
-// FIXED: defaultSave function with improved year parsing
 const defaultSave = async (outerKey, table, isTeacher = false) => {
   let payload = {};
   if (isTeacher) {
-    // Teacher timetables are not saved separately
     toast.info("Teacher timetables are derived from class timetables and cannot be saved separately.");
     return { success: true, message: "Teacher timetables are derived dynamically" };
   } else {
-    // Parse outerKey format: "3rd Div 1" or "1st Year Div 1"
     const keyStr = String(outerKey);
     let year, division;
     
     console.log("🔍 Parsing outerKey:", keyStr);
     
     if (keyStr.includes(" Div ")) {
-      // Format: "year Div division"
       const divIndex = keyStr.indexOf(" Div ");
       year = keyStr.substring(0, divIndex).trim();
       division = keyStr.substring(divIndex + 5).trim();
       
       console.log("Extracted - Year:", year, "Division:", division);
     } else {
-      // Fallback: try to split and extract
       const parts = keyStr.split(" ");
       const divIndex = parts.findIndex(p => p.toLowerCase() === "div");
       
@@ -93,14 +87,11 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
       }
     }
 
-    // ✅ FIX: Ensure division is valid (should be numeric or alpha like "A", "B")
-    // Accept both numeric (1, 2, 3) and alphabetic (A, B, C) divisions
     if (!/^[0-9A-Za-z]+$/.test(division)) {
       console.warn("⚠️ Invalid division format:", division, "- defaulting to 1");
       division = "1";
     }
 
-    // Ensure year is not empty
     if (!year || year.length === 0) {
       console.error("Could not parse year from outerKey:", outerKey);
       toast.error("Failed to parse timetable information. Please try again.");
@@ -117,7 +108,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
   }
 
   try {
-    const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/timetable/save`, payload);
+    const res = await axiosInstance.post(`${import.meta.env.VITE_BACKEND_URL}/api/timetable/save`, payload);
     
     console.log("📥 Server response:", res.data);
     
@@ -162,10 +153,8 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
       try {
         const maybePromise = onSave(outerKey, table, isTeacher);
         if (maybePromise && typeof maybePromise.then === "function") {
-          // ✅ AWAIT the promise and check the result
           const result = await maybePromise;
           
-          // Only show success if the save actually succeeded
           if (result && result.success) {
             toast.success("Timetable saved successfully");
           }
@@ -183,6 +172,10 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
     }
   };
 
+  const handleEdit = (key, table, isTeacher = false) => {
+    console.log("Edit timetable:", key);
+  };
+
   const canSave = allConflicts.length === 0 && criticalIssues.length === 0;
 
   return (
@@ -195,8 +188,8 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
             {criticalIssues.length > 0 
               ? "🚨 Critical issues detected - cannot generate timetable"
               : hasIssues 
-                ? "Review issues before finalizing" 
-                : "Timetable generated successfully"}
+                ? "⚠️ Review issues before finalizing" 
+                : "✅ Timetable generated successfully"}
           </p>
         </div>
 
@@ -307,7 +300,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
           </div>
         )}
 
-        {/* ROOM & TEACHER CONFLICTS - Keep existing code */}
+        {/* ROOM CONFLICTS */}
         {roomConflicts.length > 0 && (
           <div className="bg-orange-50 border-2 border-orange-300 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-lg">
             <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-orange-800 flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
@@ -348,7 +341,46 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
           </div>
         )}
 
-        {/* UNALLOCATED SESSIONS - Keep existing code */}
+        {/* TEACHER CONFLICTS */}
+        {conflicts.length > 0 && (
+          <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-red-800 flex items-center gap-3 mb-4">
+              <span className="text-3xl">👨‍🏫</span>
+              Teacher Conflicts Detected ({conflicts.length})
+            </h2>
+            <p className="text-red-700 mb-4 font-medium">
+              🚫 The following teachers are already assigned to other classes at these times.
+            </p>
+            <div className="bg-white rounded-xl overflow-hidden shadow-md border border-red-200">
+              <table className="w-full text-sm">
+                <thead className="bg-red-100 text-red-800 font-bold">
+                  <tr>
+                    <th className="py-3 px-4 text-left">Teacher</th>
+                    <th className="py-3 px-4 text-left">Day / Time</th>
+                    <th className="py-3 px-4 text-left">Already Teaching</th>
+                    <th className="py-3 px-4 text-left">Subject</th>
+                    <th className="py-3 px-4 text-left">Room</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-red-100">
+                  {conflicts.map((c, i) => (
+                    <tr key={i} className="hover:bg-red-50 transition-colors">
+                      <td className="py-3 px-4 font-bold text-gray-800">{c.teacher}</td>
+                      <td className="py-3 px-4 text-gray-700">
+                        {c.day} - {c.time_slot}
+                      </td>
+                      <td className="py-3 px-4 text-red-600 font-medium">{c.assigned_to}</td>
+                      <td className="py-3 px-4 text-gray-600">{c.subject}</td>
+                      <td className="py-3 px-4 text-gray-600">{c.room}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* UNALLOCATED SESSIONS - SINGLE DISPLAY */}
         {unallocated.length > 0 && (
           <div className="bg-amber-50 border-2 border-amber-300 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-lg">
             <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-amber-800 flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
@@ -398,45 +430,6 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
           </div>
         )}
 
-        {/* 📋 TEACHER CONFLICT REPORT */}
-        {conflicts.length > 0 && (
-          <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-6 shadow-lg">
-            <h2 className="text-2xl font-bold text-red-800 flex items-center gap-3 mb-4">
-              <span className="text-3xl">❌</span>
-              Teacher Conflicts Detected ({conflicts.length})
-            </h2>
-            <p className="text-red-700 mb-4 font-medium">
-              🚫 The following teachers are already assigned to other classes at these times.
-            </p>
-            <div className="bg-white rounded-xl overflow-hidden shadow-md border border-red-200">
-              <table className="w-full text-sm">
-                <thead className="bg-red-100 text-red-800 font-bold">
-                  <tr>
-                    <th className="py-3 px-4 text-left">Teacher</th>
-                    <th className="py-3 px-4 text-left">Day / Time</th>
-                    <th className="py-3 px-4 text-left">Already Teaching</th>
-                    <th className="py-3 px-4 text-left">Subject</th>
-                    <th className="py-3 px-4 text-left">Room</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-red-100">
-                  {conflicts.map((c, i) => (
-                    <tr key={i} className="hover:bg-red-50 transition-colors">
-                      <td className="py-3 px-4 font-bold text-gray-800">{c.teacher}</td>
-                      <td className="py-3 px-4 text-gray-700">
-                        {c.day} - {c.time_slot}
-                      </td>
-                      <td className="py-3 px-4 text-red-600 font-medium">{c.assigned_to}</td>
-                      <td className="py-3 px-4 text-gray-600">{c.subject}</td>
-                      <td className="py-3 px-4 text-gray-600">{c.room}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
         {/* CLASS TIMETABLES */}
         {Object.keys(classTT).length > 0 && (
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-5 md:p-6 border border-gray-200">
@@ -447,7 +440,6 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
                 const tt = classTT[year][division];
                 const outerKey = `${year} Div ${division}`;
 
-                // Get all unique time slots
                 const allTimeSlots = new Set();
                 ORDERED_DAYS.forEach((day) => {
                   if (tt[day]) {
@@ -457,11 +449,9 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
                 const sortedTimeSlots = Array.from(allTimeSlots).sort();
 
                 return (
-                  <div key={`${year}-${division}`} className="mb-10 last:mb-0">
+                  <div key={outerKey} className="mb-10 last:mb-0">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 pb-3 border-b border-gray-200 gap-2 sm:gap-4">
-                      <h4 className="text-lg sm:text-xl font-bold text-gray-800 truncate flex-1 min-w-0">
-                        {year} — Division {division}
-                      </h4>
+                      <h4 className="text-lg sm:text-xl font-bold text-gray-800 truncate flex-1 min-w-0">{outerKey}</h4>
 
                       <div className="flex flex-wrap gap-1.5 sm:gap-2 w-full sm:w-auto">
                         <button
@@ -479,7 +469,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
                               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                               : 'bg-green-600 hover:bg-green-700 text-white'
                           }`}
-                          title={!canSave ? "Resolve conflicts and critical issues to enable saving" : ""}
+                          title={!canSave ? "Resolve conflicts to enable saving" : ""}
                         >
                           {!canSave ? "🔒 Save" : "Save"}
                         </button>
@@ -500,7 +490,6 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
                       </div>
                     </div>
 
-                    {/* ✅ USE UNIFIED RENDERER */}
                     <div className="overflow-x-auto rounded-lg sm:rounded-xl border border-gray-200 -mx-1 sm:mx-0">
                       <table className="min-w-full border-collapse text-xs sm:text-sm">
                         <thead>
@@ -524,7 +513,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
                         <tbody>
                           {sortedTimeSlots.map((timeSlot) => (
                             <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
-                              <td className="border border-gray-300 p-1 sm:p-2 md:p-3 bg-blue-50 font-bold text-blue-700 text-center text-[9px] sm:text-xs md:text-sm sticky left-0 bg-blue-50 z-10 whitespace-nowrap">
+                              <td className="border border-gray-300 p-2 sm:p-3 bg-blue-50 font-bold text-blue-700 text-center text-xs sm:text-sm sticky left-0 bg-blue-50 z-10 whitespace-nowrap">
                                 {formatTimeSlot(timeSlot)}
                               </td>
 
@@ -562,7 +551,6 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
             {Object.keys(teacherTT).map((teacher) => {
               const tt = teacherTT[teacher];
 
-              // Get all unique time slots
               const allTimeSlots = new Set();
               ORDERED_DAYS.forEach((day) => {
                 if (tt[day]) {
@@ -613,7 +601,6 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
                     </div>
                   </div>
 
-                  {/* ✅ USE UNIFIED RENDERER WITH YEAR/DIVISION */}
                   <div className="overflow-x-auto rounded-lg sm:rounded-xl border border-gray-200 -mx-1 sm:mx-0">
                     <table className="min-w-full border-collapse text-xs sm:text-sm">
                       <thead>
@@ -637,7 +624,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
                       <tbody>
                         {sortedTimeSlots.map((timeSlot) => (
                           <tr key={timeSlot} className="hover:bg-blue-50/30 transition-colors">
-                            <td className="border border-gray-300 p-1 sm:p-2 md:p-3 bg-blue-50 font-bold text-blue-700 text-center text-[9px] sm:text-xs md:text-sm sticky left-0 bg-blue-50 z-10 whitespace-nowrap">
+                            <td className="border border-gray-300 p-2 sm:p-3 bg-blue-50 font-bold text-blue-700 text-center text-xs sm:text-sm sticky left-0 bg-blue-50 z-10 whitespace-nowrap">
                               {formatTimeSlot(timeSlot)}
                             </td>
 
@@ -648,7 +635,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
                                   className="border border-gray-300 p-2 sm:p-3 text-xs sm:text-sm align-top min-h-[90px] sm:min-h-[110px]"
                                 >
                                   {renderTimetableCell(tt[day][timeSlot], {
-                                    showYearDivision: true,  // Show year/div in teacher view
+                                    showYearDivision: true,
                                     filterByBatch: null,
                                     highlightBatch: false
                                   })}
@@ -666,7 +653,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
           </div>
         )}
 
-        {/* GLOBAL SAVE ALL BUTTON - Keep existing */}
+        {/* GLOBAL SAVE ALL BUTTON */}
         {Object.keys(classTT).length > 0 && (
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-5 md:p-6 border border-gray-200">
             <button

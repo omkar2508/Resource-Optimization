@@ -11,18 +11,46 @@ const userSchema = new mongoose.Schema({
   resetOtp: { type: String, default: "" },
   resetOtpExpireAt: { type: Number, default: 0 },
 
-  role: { type: String, enum: ["teacher", "student"], default: "student" },
+  role: { 
+    type: String, 
+    enum: ["superadmin", "admin", "teacher", "student"], 
+    default: "student" 
+  },
 
-  // =========================
-  // ACADEMIC DETAILS (NEW)
-  // =========================
-  department: { type: String },
-  admissionYear: { type: Number },      // ✅ stored
-  division: { type: String},
-  batch: { type: String, default: "" }, // filled in profile setup
-});
+  department: { 
+    type: String,
+    enum: [
+      "Computer Engineering",
+      "IT Engineering", 
+      "AI Engineering",
+      "Software Engineering",
+      "Mechanical Engineering",
+      "Civil Engineering",
+      "Electrical Engineering",
+      "Administration" 
+    ],
+    required: function() {
+      return this.role === "admin" || this.role === "teacher";
+    }
+  },
 
-const userModel =
-  mongoose.models.user || mongoose.model("user", userSchema);
+subjects: [{
+  code: { type: String, required: true, uppercase: true },
+  name: { type: String, required: true },
+  department: { type: String, required: true }
+}],
+
+
+  admissionYear: { type: Number },
+  division: { type: String },
+  batch: { type: String, default: "" },
+
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+  isActive: { type: Boolean, default: true }
+}, { timestamps: true });
+
+userSchema.index({ role: 1, department: 1 });
+
+const userModel = mongoose.models.user || mongoose.model("user", userSchema);
 
 export default userModel;

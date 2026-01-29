@@ -6,7 +6,6 @@ const ScrollToHash = () => {
 
   useEffect(() => {
     if (hash) {
-      // Small delay ensures Home components are rendered
       setTimeout(() => {
         const element = document.querySelector(hash);
         if (element) {

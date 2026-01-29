@@ -4,7 +4,7 @@ import userModel from '../models/userModel.js';
 import transporter from '../config/nodemailer.js';
 import { EMAIL_VERIFY_TEMPLATE,PASSWORD_RESET_TEMPLATE ,TEST_EMAIL_TEMPLATE} from '../config/emailTemplates.js';
 
-// ---------------- REGISTER ----------------
+// UPDATE register function
 export const register = async (req, res) => {
   const {
     name,
@@ -16,17 +16,37 @@ export const register = async (req, res) => {
   } = req.body;
 
   if (!name || !email || !password) {
-    return res
-      .status(400)
-      .json({ success: false, message: "All fields are required" });
+    return res.status(400).json({ 
+      success: false, 
+      message: "All fields are required" 
+    });
+  }
+
+  // VALIDATE department for students
+  const validDepartments = [
+    "Computer Engineering",
+    "IT Engineering",
+    "AI Engineering",
+    "Software Engineering",
+    "Mechanical Engineering",
+    "Civil Engineering",
+    "Electrical Engineering"
+  ];
+
+  if (department && !validDepartments.includes(department)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid department selected"
+    });
   }
 
   try {
     const existingUser = await userModel.findOne({ email });
     if (existingUser) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User already exists" });
+      return res.status(400).json({ 
+        success: false, 
+        message: "User already exists" 
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -35,8 +55,7 @@ export const register = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-
-      // academic info (optional but supported)
+      role: "student", // Default role
       department: department || "",
       admissionYear: admissionYear || null,
       division: division || "",
@@ -60,7 +79,7 @@ export const register = async (req, res) => {
     await transporter.sendMail({
       from: process.env.SENDER_EMAIL,
       to: email,
-      subject: "Welcome to Our Platform",
+      subject: "Welcome to ResourceOPT",
       html: TEST_EMAIL_TEMPLATE
         .replace("{{name}}", name)
         .replace("{{email}}", email),
@@ -73,54 +92,78 @@ export const register = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        department: user.department
       },
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
   }
 };
 
-
-// ---------------- LOGIN ----------------
+// ADD role check in login to block admins
 export const login = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-        return res.status(400).json({ success: false, message: "All fields are required" });
+        return res.status(400).json({ 
+            success: false, 
+            message: "All fields are required" 
+        });
     }
 
     try {
         const user = await userModel.findOne({ email });
         if (!user) {
-            return res.status(400).json({ success: false, message: "Invalid email or password" });
+            return res.status(400).json({ 
+                success: false, 
+                message: "Invalid email or password" 
+            });
+        }
+
+        // BLOCK ADMIN/SUPERADMIN from user login
+        if (user.role === "admin" || user.role === "superadmin") {
+            return res.status(403).json({ 
+                success: false, 
+                message: "Admins must log in at /admin/login" 
+            });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(400).json({ success: false, message: "Invalid email or password" });
+            return res.status(400).json({ 
+                success: false, 
+                message: "Invalid email or password" 
+            });
         }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
             expiresIn: '7d'
         });
 
-      res.cookie('token', token, {
-  httpOnly: true,
-  sameSite: "none",
-  secure: true,
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-});
+        res.cookie('token', token, {
+            httpOnly: true,
+            sameSite: "none",
+            secure: true,
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
 
-        res.json({ success: true, message: "Logged in successfully" });
+        res.json({ 
+            success: true, 
+            message: "Logged in successfully" 
+        });
 
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        res.json({ 
+            success: false, 
+            message: error.message 
+        });
     }
 };
 
-// ---------------- LOGOUT ----------------
+
 export const logout = async (req, res) => {
     try {
         res.clearCookie("token", {

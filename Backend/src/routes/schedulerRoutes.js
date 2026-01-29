@@ -1,8 +1,10 @@
-import { Router } from "express";
 import { generateTimetable } from "../controllers/schedulerController.js";
+import { adminAuth, blockSuperadminGeneration } from "../middleware/adminAuth.js";
+import express from "express";
 
-const router = Router();
+const schedulerRouter = express.Router();
 
-router.post("/generate", generateTimetable);
+// Add blockSuperadminGeneration to prevent superadmin from generating
+schedulerRouter.post("/generate", adminAuth, blockSuperadminGeneration, generateTimetable);
 
-export default router;
+export default schedulerRouter;

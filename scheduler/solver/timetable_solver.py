@@ -163,7 +163,7 @@ def solver_greedy_distribute(payload):
                     failed_lab_attempts[lab_key]["days_attempted"].add(day)
                     if conflict_info.get('reason') == 'break_interruption':
                         failed_lab_attempts[lab_key]["conflict"] = conflict_info
-                        lab_conflicts.append(conflict_info)
+
     
     # PHASE 3: Practicals
     allocate_practicals(
@@ -216,7 +216,11 @@ def solver_greedy_distribute(payload):
             failure_reason = None
             if lab_key in failed_lab_attempts:
                 failure_reason = failed_lab_attempts[lab_key]["conflict"].get("reason")
-            
+            if lab_key in failed_lab_attempts:
+                conflict = failed_lab_attempts[lab_key]["conflict"]
+                if conflict.get("reason") == "break_interruption":
+                    lab_conflicts.append(conflict)
+
             unallocated_sessions.append({
                 "subject": req["code"],
                 "type": "Lab",

@@ -5,11 +5,12 @@ import { assets } from "../assets/assets";
 import toast from "react-hot-toast";
 import useIdleLogout from "../hooks/useIdleLogout";
 import { Menu, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function AdminLayout() {
-  const { axios, navigate, setIsAdmin } = useAppContext();
+  const { axios, setIsAdmin, adminData } = useAppContext();
+  const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  // ✅ FIX: Sidebar starts CLOSED on mobile
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -17,7 +18,6 @@ export default function AdminLayout() {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
       
-      // ✅ FIX: Always close sidebar on resize
       if (mobile) {
         setIsSidebarOpen(false);
       }
@@ -27,7 +27,6 @@ export default function AdminLayout() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ✅ FIX: Prevent body scroll when sidebar is open
   useEffect(() => {
     if (isMobile && isSidebarOpen) {
       document.body.style.overflow = 'hidden';
@@ -91,10 +90,10 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ================= NAVBAR ================= */}
+      {/* Navbar */}
       <header className="fixed top-0 left-0 right-0 z-50 h-14 sm:h-16 bg-white border-b shadow-sm flex items-center justify-between px-3 sm:px-4 md:px-6">
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* ✅ Mobile Sidebar Toggle */}
+          {/*Mobile Sidebar Toggle */}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="md:hidden p-2.5 hover:bg-blue-100 rounded-lg transition-colors flex-shrink-0 bg-blue-50 text-blue-700 border border-blue-300 shadow-sm"
@@ -114,18 +113,23 @@ export default function AdminLayout() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
-          <span className="text-xs sm:text-sm text-gray-600 font-medium hidden sm:inline">Hi, Admin</span>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="hidden sm:inline-flex px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+            {adminData?.department || "Admin"}
+          </span>
+          <span className="hidden md:inline text-sm text-gray-600">
+            Hi, {adminData?.name || "Admin"}
+          </span>
           <button
             onClick={handleLogout}
-            className="border rounded-full px-2 sm:px-3 md:px-4 py-1 text-xs sm:text-sm hover:bg-gray-100 transition-colors whitespace-nowrap font-medium"
+            className="px-3 py-1.5 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 border border-red-200 transition-colors"
           >
             Logout
           </button>
         </div>
       </header>
 
-      {/* ================= MOBILE SIDEBAR OVERLAY ================= */}
+      {/* MOBILE SIDEBAR OVERLAY */}
       {isMobile && isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
@@ -134,7 +138,7 @@ export default function AdminLayout() {
         />
       )}
 
-      {/* ================= SIDEBAR ================= */}
+      {/* SIDEBAR */}
       <aside
         className={`fixed top-14 sm:top-16 left-0 z-50 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] bg-white border-r overflow-y-auto transition-transform duration-300 ease-in-out shadow-2xl
           ${
@@ -145,7 +149,7 @@ export default function AdminLayout() {
         `}
       >
         <div className={`${isMobile ? "px-4 py-4" : "px-2 lg:px-4 py-4 lg:py-6"}`}>
-          {/* ✅ Close Button (Mobile Only) */}
+          {/*Close Button (Mobile Only) */}
           {isMobile && (
             <div className="flex justify-end mb-4">
               <button
@@ -275,7 +279,7 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      {/* ================= CONTENT ================= */}
+      {/* CONTENT */}
       <main className={`pt-14 sm:pt-16 pb-6 transition-all duration-300 min-h-[calc(100vh-3.5rem)] sm:min-h-[calc(100vh-4rem)] ${
         isMobile 
           ? "pl-0" 

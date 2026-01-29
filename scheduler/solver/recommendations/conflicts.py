@@ -28,7 +28,7 @@ def generate_room_conflict_recommendations(room_conflicts, rooms, saved_timetabl
                 alternative_rooms.append(room['name'])
         
         if len(alternative_rooms) > 0:
-            suggestions.append(f"✅ Use alternative room: {', '.join(alternative_rooms[:3])}")
+            suggestions.append(f" Use alternative room: {', '.join(alternative_rooms[:3])}")
         else:
             suggestions.append(f"💡 No free rooms available. Consider shifting to another time slot or day.")
         

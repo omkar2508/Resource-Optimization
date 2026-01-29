@@ -1,14 +1,3 @@
-/**
- * Utility function to convert 24-hour time format to 12-hour format with AM/PM
- * UI ONLY - Does not modify stored data or backend logic
- * 
- * Examples:
- * "08:00-09:00" → "8:00 AM - 9:00 AM"
- * "13:45-14:45" → "1:45 PM - 2:45 PM"
- * "12:00-13:00" → "12:00 PM - 1:00 PM"
- * "00:30-01:30" → "12:30 AM - 1:30 AM"
- */
-
 export function formatTime12Hour(timeString) {
   if (!timeString || typeof timeString !== 'string') {
     return timeString;
@@ -56,11 +45,6 @@ function formatSingleTime12Hour(timeString) {
 
   return `${hours}:${minutes} ${period}`;
 }
-
-/**
- * Format time slot for display in timetable cells
- * Handles both "HH:MM-HH:MM" format and single times
- */
 export function formatTimeSlot(timeSlot) {
   return formatTime12Hour(timeSlot);
 }

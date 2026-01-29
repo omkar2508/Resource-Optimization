@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-// Component schema for Theory/Lab/Tutorial
 const componentSchema = new mongoose.Schema({
   type: { 
     type: String, 
@@ -9,7 +8,7 @@ const componentSchema = new mongoose.Schema({
   },
   hours: { type: Number, required: true },
   batches: { type: Number, default: 1 },
-  labDuration: { type: Number, default: 2 }, // Only relevant for Lab type
+  labDuration: { type: Number, default: 2 },
 }, { _id: false });
 
 const subjectSchema = new mongoose.Schema({
@@ -24,11 +23,7 @@ const subjectSchema = new mongoose.Schema({
     enum: ["1st", "2nd", "3rd", "4th"], 
     required: true 
   },
-  semester: { 
-    type: Number, 
-    required: true 
-  },
-  // Components array - can contain Theory, Lab, Tutorial
+  semester: { type: Number, required: true },
   components: {
     type: [componentSchema],
     required: true,
@@ -39,14 +34,25 @@ const subjectSchema = new mongoose.Schema({
       message: 'Subject must have at least one component'
     }
   },
+  
   department: { 
     type: String, 
-    default: "Software Engineering" 
-  }
+    required: true,
+    enum: [
+      "Computer Engineering",
+      "IT Engineering",
+      "AI Engineering", 
+      "Software Engineering",
+      "Mechanical Engineering",
+      "Civil Engineering",
+      "Electrical Engineering"
+    ]
+  },
+
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "user" }
 }, { timestamps: true });
 
-// Unique constraint: one subject code per year/semester
-subjectSchema.index({ code: 1, year: 1, semester: 1 }, { unique: true });
+subjectSchema.index({ code: 1, year: 1, semester: 1, department: 1 }, { unique: true });
 
 const subjectModel = mongoose.models.subject || mongoose.model("subject", subjectSchema);
 export default subjectModel;

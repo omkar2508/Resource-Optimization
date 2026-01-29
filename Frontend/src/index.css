@@ -1,19 +1,12 @@
-/* ================================
-   GOOGLE FONT
-================================ */
+
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap");
 
-/* ================================
-   TAILWIND BASE + COMPONENTS + UTILS
-================================ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ================================
-   DESIGN SYSTEM (COLORS, GRADIENTS, SHADOWS)
-   ALL COLORS MUST BE HSL
-================================ */
+
 @layer base {
   :root {
     --background: 220 25% 97%;
@@ -86,9 +79,6 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
-  /* ================================
-      DARK MODE
-  ================================ */
   .dark {
     --background: 220 25% 8%;
     --foreground: 220 15% 95%;
@@ -146,10 +136,9 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+ 
+  
 
-  /* ================================
-      BASE STYLES
-  ================================ */
   * {
     @apply border-border;
     font-family: "Outfit", sans-serif;

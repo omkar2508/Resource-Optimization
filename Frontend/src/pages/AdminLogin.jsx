@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import { Navbar } from "../components/Navbar";
 
 export default function AdminLoginPage() {
-  const { axios, setIsAdmin } = useAppContext();
+  const { adminLogin } = useAppContext(); 
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -14,24 +14,7 @@ export default function AdminLoginPage() {
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
-
-    try {
-      const { data } = await axios.post(
-        "/api/admin/login",
-        { email, password },
-        { withCredentials: true }
-      );
-
-      if (data.success) {
-        toast.success("Admin logged in");
-        setIsAdmin(true);
-        navigate("/admin/dashboard");
-      } else {
-        toast.error(data.message);
-      }
-    } catch (err) {
-      toast.error("Login failed");
-    }
+    await adminLogin(email, password);  // Handles everything
   };
 
   return (
@@ -46,27 +29,7 @@ export default function AdminLoginPage() {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-2xl opacity-10 animate-blob-slow animation-delay-3000"></div>
       </div>
 
-      {/* TOP LEFT — ResourceOPT */}
-      {/* <div className="absolute left-5 sm:left-10 top-5 flex items-center space-x-2 cursor-pointer z-10">
-        <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">
-                R
-              </span>
-            </div>
-            <span className="font-bold text-xl text-foreground">
-              ResourceOPT
-            </span>
-          </Link>
-      </div> */}
       <Navbar/>
-
-      {/* TOP RIGHT — Logo */}
-      {/* <img
-        src={assets.logo}
-        alt="auth logo"
-        className="absolute right-4 sm:right-10 top-5 w-20 sm:w-24 z-10"
-      /> */}
 
       {/* CENTER ADMIN LOGIN CARD */}
       <div className="relative z-20 bg-slate-900 px-10 py-12 rounded-xl shadow-xl w-full max-w-md text-indigo-300">

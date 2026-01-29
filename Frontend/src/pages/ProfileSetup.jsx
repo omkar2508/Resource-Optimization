@@ -4,9 +4,7 @@ import { useAppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
-/* =========================
-   Academic Year Calculator
-========================= */
+
 const getAcademicYear = (admissionYear) => {
   if (!admissionYear) return "";
 

@@ -1,3 +1,4 @@
+// pages/Login.jsx - FIXED VARIABLE NAME BUG
 import React, { useState, useEffect } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -15,26 +16,32 @@ import {
   EyeOff,
 } from "lucide-react";
 
-/* =========================
-   Department → Divisions
-========================= */
-const departmentDivisions = {
-  "Software Engineering": ["1"], // only one div - auto assigned
-  "AI Engineering": ["1", "2", "3"], // multiple divisions - user selects
-  "Computer Engineering": ["1", "2"], // multiple divisions - user selects
-  "IT Engineering": ["1", "2"], // multiple divisions - user selects
+
+const DEPARTMENTS = [
+  "Computer Engineering",
+  "IT Engineering",
+  "AI Engineering",
+  "Software Engineering",
+  "Mechanical Engineering",
+  "Civil Engineering",
+  "Electrical Engineering"
+];
+
+// FIXED: Consistent naming with UPPERCASE
+const DEPARTMENT_DIVISIONS = {
+  "Software Engineering": ["1"],
+  "AI Engineering": ["1", "2", "3"],
+  "Computer Engineering": ["1", "2"],
+  "IT Engineering": ["1", "2"],
+  "Mechanical Engineering": ["1"],
+  "Civil Engineering": ["1"],
+  "Electrical Engineering": ["1"]
 };
 
-// =========================
-// Validation Helpers Function
-// =========================
+// Validation Helpers
 const isValidName = (name) => /^[A-Za-z ]{2,}$/.test(name.trim());
-
-const isValidEmail = (email) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 const isValidPassword = (password) => password.length >= 6;
-
 
 const Login = () => {
   const location = useLocation();
@@ -56,20 +63,19 @@ const Login = () => {
   const [admissionYear, setAdmissionYear] = useState("");
   const [division, setDivision] = useState("");
 
-  /* =========================
-     Auto-select division
-  ========================= */
+
   useEffect(() => {
     if (!department) {
-      setDivision(""); // Reset division when no department selected
+      setDivision("");
       return;
     }
 
-    const divs = departmentDivisions[department] || [];
+    // FIXED: Use DEPARTMENT_DIVISIONS (uppercase)
+    const divs = DEPARTMENT_DIVISIONS[department] || [];
     if (divs.length === 1) {
-      setDivision(divs[0]); // auto assign when only one division
+      setDivision(divs[0]);
     } else {
-      setDivision(""); // reset to allow user selection when multiple divisions
+      setDivision("");
     }
   }, [department]);
 
@@ -78,96 +84,64 @@ const Login = () => {
     else if (location.state?.mode === "login") setState("Login");
   }, [location]);
 
-  // const onSubmitHandler = async (e) => {
-  //   e.preventDefault();
+  const onSubmitHandler = async (e) => {
+    e.preventDefault();
 
-  //   try {
-  //     if (state === "Sign Up") {
-  //       if (!department || !admissionYear || !division) {
-  //         return toast.error("Please fill all required fields");
-  //       }
+    // Common validations
+    if (!isValidEmail(email)) {
+      return toast.error("Please enter a valid email address");
+    }
 
-  //       await signup(
-  //         name,
-  //         email,
-  //         password,
-  //         department,
-  //         Number(admissionYear),
-  //         division,
-  //       );
-  //     } else {
-  //       await login(email, password);
-  //     }
-  //   } catch {
-  //     toast.error("Something went wrong");
-  //   }
-  // };
+    if (!password) {
+      return toast.error("Password is required");
+    }
 
-    const onSubmitHandler = async (e) => {
-      e.preventDefault();
-
-      // =========================
-      // COMMON VALIDATIONS
-      // =========================
-      if (!isValidEmail(email)) {
-        return toast.error("Please enter a valid email address");
+    if (state === "Sign Up") {
+      // Signup validations
+      if (!isValidName(name)) {
+        return toast.error(
+          "Name should contain only letters and be at least 2 characters"
+        );
       }
 
-      if (!password) {
-        return toast.error("Password is required");
+      if (!isValidPassword(password)) {
+        return toast.error("Password must be at least 6 characters long");
       }
 
-      // =========================
-      // SIGN UP VALIDATIONS
-      // =========================
-      if (state === "Sign Up") {
-        if (!isValidName(name)) {
-          return toast.error(
-            "Name should contain only letters and be at least 2 characters"
-          );
-        }
-
-        if (!isValidPassword(password)) {
-          return toast.error("Password must be at least 6 characters long");
-        }
-
-        if (!department) {
-          return toast.error("Please select a department");
-        }
-
-        if (!division) {
-          return toast.error("Please select a division");
-        }
-
-        if (!admissionYear) {
-          return toast.error("Please select admission year");
-        }
-
-        try {
-          await signup(
-            name.trim(),
-            email.trim(),
-            password,
-            department,
-            Number(admissionYear),
-            division
-          );
-        } catch {
-          toast.error("Signup failed");
-        }
-
-      } else {
-        // =========================
-        // LOGIN VALIDATIONS
-        // =========================
-        try {
-          await login(email.trim(), password);
-        } catch {
-          toast.error("Invalid login credentials");
-        }
+      if (!department) {
+        return toast.error("Please select a department");
       }
-    };
 
+      if (!division) {
+        return toast.error("Please select a division");
+      }
+
+      if (!admissionYear) {
+        return toast.error("Please select admission year");
+      }
+
+      try {
+        await signup(
+          name.trim(),
+          email.trim(),
+          password,
+          department,
+          Number(admissionYear),
+          division
+        );
+      } catch {
+        toast.error("Signup failed");
+      }
+
+    } else {
+      // Login
+      try {
+        await login(email.trim(), password);
+      } catch {
+        toast.error("Invalid login credentials");
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 flex items-center justify-center relative overflow-hidden p-4">
@@ -197,7 +171,7 @@ const Login = () => {
               <input
                 onChange={(e) => setName(e.target.value)}
                 value={name}
-                className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder:text-white"
+                className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder:text-indigo-400"
                 type="text"
                 placeholder="Enter your name"
                 required
@@ -207,48 +181,50 @@ const Login = () => {
 
           {/* DEPARTMENT */}
           {state === "Sign Up" && (
-            <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-full bg-[#333A5C]">
-              <Building2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-              <select
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                required
-                className="w-full bg-transparent text-white focus:outline-none text-sm sm:text-base"
-              >
-                <option value="" className="text-black">
-                  Select Department
-                </option>
-                {Object.keys(departmentDivisions).map((dept) => (
-                  <option key={dept} value={dept} className="text-black">
-                    {dept}
+            <div className="mb-4">
+              <div className="flex items-center gap-3 px-5 py-2.5 rounded-full bg-[#333A5C]">
+                <Building2 className="w-5 h-5 flex-shrink-0 text-indigo-400" />
+                <select
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  required
+                  className="w-full bg-transparent text-white focus:outline-none"
+                >
+                  <option value="" className="text-black bg-white">
+                    Select Department
                   </option>
-                ))}
-              </select>
+                  {DEPARTMENTS.map((dept) => (
+                    <option key={dept} value={dept} className="text-black bg-white">
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
-
+          
           {/* DIVISION */}
           {state === "Sign Up" && department && (
             <div className="mb-3 sm:mb-4">
               <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-full bg-[#333A5C]">
-                <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 text-indigo-400" />
                 <select
                   value={division}
                   onChange={(e) => setDivision(e.target.value)}
                   required
                   className={`w-full bg-transparent text-white focus:outline-none text-sm sm:text-base ${
-                    departmentDivisions[department]?.length === 1
+                    DEPARTMENT_DIVISIONS[department]?.length === 1
                       ? "opacity-75 cursor-not-allowed"
                       : "cursor-pointer"
                   }`}
-                  disabled={departmentDivisions[department]?.length === 1}
+                  disabled={DEPARTMENT_DIVISIONS[department]?.length === 1}
                 >
                   <option value="" className="text-black bg-white">
-                    {departmentDivisions[department]?.length === 1
-                      ? `Division ${departmentDivisions[department][0]} (Auto Assigned)`
+                    {DEPARTMENT_DIVISIONS[department]?.length === 1
+                      ? `Division ${DEPARTMENT_DIVISIONS[department][0]} (Auto Assigned)`
                       : "Select Division"}
                   </option>
-                  {departmentDivisions[department]?.map((div) => (
+                  {DEPARTMENT_DIVISIONS[department]?.map((div) => (
                     <option
                       key={div}
                       value={div}
@@ -259,9 +235,9 @@ const Login = () => {
                   ))}
                 </select>
               </div>
-              {departmentDivisions[department]?.length > 1 && (
+              {DEPARTMENT_DIVISIONS[department]?.length > 1 && (
                 <p className="text-xs text-indigo-400 mt-1 ml-2">
-                  {departmentDivisions[department].length} divisions available
+                  {DEPARTMENT_DIVISIONS[department].length} divisions available
                 </p>
               )}
             </div>
@@ -270,7 +246,7 @@ const Login = () => {
           {/* ADMISSION YEAR */}
           {state === "Sign Up" && (
             <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-full bg-[#333A5C]">
-              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 text-indigo-400" />
               <select
                 value={admissionYear}
                 onChange={(e) => setAdmissionYear(e.target.value)}
@@ -307,7 +283,6 @@ const Login = () => {
           </div>
 
           {/* PASSWORD */}
-          {/* PASSWORD */}
           <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-full bg-[#333A5C]">
             <img
               src={assets.lock_icon}
@@ -318,7 +293,7 @@ const Login = () => {
             <input
               onChange={(e) => setPassword(e.target.value)}
               value={password}
-              className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder:text-white"
+              className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder:text-indigo-400"
               type={showPassword ? "text" : "password"}
               placeholder="Password"
               required
@@ -326,7 +301,7 @@ const Login = () => {
 
             <div
               onClick={() => setShowPassword(!showPassword)}
-              className="cursor-pointer text-white opacity-70 hover:opacity-100"
+              className="cursor-pointer text-indigo-400 opacity-70 hover:opacity-100"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </div>

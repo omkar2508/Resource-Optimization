@@ -1,4 +1,3 @@
-// src/components/StudentRoute.jsx
 import { Navigate } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 

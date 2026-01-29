@@ -26,13 +26,11 @@ export default function TeacherForm({
 
   const [maxHoursPerDay, setMaxHoursPerDay] = useState(4);
 
-  // Fetch teachers (role = teacher)
   useEffect(() => {
     const loadTeachers = async () => {
       try {
-        // ✅ FIX: Use the correct endpoint that fetches only teachers
         const res = await axios.get("/api/teacher", {
-          withCredentials: true, // ✅ Include credentials for authentication
+          withCredentials: true,
         });
         
         if (res.data.success && res.data.teachers) {
@@ -50,7 +48,6 @@ export default function TeacherForm({
     loadTeachers();
   }, [axios]);
 
-  // Available subjects
   const availableSubjects = useMemo(() => {
     const list = [];
     Object.keys(yearData || {}).forEach((yr) => {
@@ -66,7 +63,6 @@ export default function TeacherForm({
     return list;
   }, [yearData]);
 
-  // Divisions per year
   useEffect(() => {
     const newDivs = {};
     selectedYearsLocal.forEach((yr) => {
@@ -76,18 +72,15 @@ export default function TeacherForm({
     setDivisionsByYear(newDivs);
   }, [selectedYearsLocal, yearData]);
 
-  // ✅ ORIGINAL LOGIC: Toggle all components of a subject (Theory + Lab + Tutorial)
   function toggleSubject(sub) {
     const key = `${sub.code}_${sub.year}`;
     const exists = selectedSubjects.some((s) => `${s.code}_${s.year}` === key);
 
     if (exists) {
-      // Remove ALL components with this code and year
       setSelectedSubjects(
         selectedSubjects.filter((s) => `${s.code}_${s.year}` !== key)
       );
     } else {
-      // Add ALL components with this code and year
       const allComponents = availableSubjects.filter(
         (s) => s.code === sub.code && s.year === sub.year
       );
@@ -190,7 +183,7 @@ export default function TeacherForm({
     toast.success("Teacher removed");
   }
 
-  // ✅ Group subjects by code+year for display (show only once per subject)
+  //Group subjects by code+year for display (show only once per subject)
   const groupedSubjects = useMemo(() => {
     const groups = new Map();
     availableSubjects.forEach((s) => {
@@ -231,7 +224,6 @@ export default function TeacherForm({
           </select>
         </div>
 
-        {/* Subjects - ✅ FIXED: Show grouped subjects with unique keys */}
         <div className="mb-3 sm:mb-4">
           <div className="text-sm sm:text-base font-medium mb-2">Subjects</div>
           <div className="overflow-x-auto border rounded-lg max-h-48 sm:max-h-64">
@@ -364,7 +356,7 @@ export default function TeacherForm({
         </button>
       </div>
 
-      {/* ✅ Teachers Added Table - Show types for each subject */}
+      {/*Teachers Added Table - Show types for each subject */}
       <h3 className="text-base sm:text-lg font-semibold mb-2 sm:mb-3">Teachers Added</h3>
 
       {teachers.length === 0 ? (
@@ -388,7 +380,6 @@ export default function TeacherForm({
                 {[...teachers]
                   .sort((a, b) => a.name.localeCompare(b.name))
                   .map((t, index) => {
-                    // ✅ Group subjects by code to show types
                     const subjectGroups = new Map();
                     t.subjects.forEach((s) => {
                       const key = `${s.code}`;

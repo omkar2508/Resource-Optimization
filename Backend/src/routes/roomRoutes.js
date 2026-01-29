@@ -1,12 +1,13 @@
-// roomRoutes.js - UPDATED: Add year filtering route
-import express from "express";
 import { addRoom, getRooms, getRoomsByYear, deleteRoom } from "../controllers/roomController.js";
+import { adminAuth } from "../middleware/adminAuth.js";
+import express from "express";
 
-const router = express.Router();
+const roomRouter = express.Router();
 
-router.post("/add", addRoom);
-router.get("/all", getRooms);
-router.get("/by-year", getRoomsByYear);  // ✅ NEW: Filter by year
-router.delete("/delete/:id", deleteRoom);
+//All routes protected with adminAuth
+roomRouter.post("/add", adminAuth, addRoom);
+roomRouter.get("/all", adminAuth, getRooms);
+roomRouter.get("/by-year", adminAuth, getRoomsByYear);
+roomRouter.delete("/delete/:id", adminAuth, deleteRoom);
 
-export default router;
+export default roomRouter;

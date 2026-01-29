@@ -223,16 +223,6 @@ export default function AddSubject() {
   return (
      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 py-4 sm:py-6 md:py-10 px-4">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        {/* <div className="mb-4 sm:mb-6 md:mb-8">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-2 sm:gap-3 mb-2">
-            <span className="text-2xl sm:text-3xl md:text-4xl"></span>
-            <span>Subject Management</span>
-          </h2>
-          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">
-            Add subjects with their Theory, Lab, and Tutorial components
-          </p>
-        </div> */}
 
         {/* Add/Edit Subject Form */}
         <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border p-4 sm:p-6 md:p-8 mb-6 sm:mb-8">
@@ -277,7 +267,7 @@ export default function AddSubject() {
                   ))}
                 </select>
               </div>
-
+              
               <div>
                 <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                   Semester *
@@ -460,7 +450,7 @@ export default function AddSubject() {
                 </div>
               )}
             </div>
-
+              
             {/* Submit Button */}
             <button
               type="submit"

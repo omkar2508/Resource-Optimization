@@ -5,20 +5,19 @@ import heroImage from "@/assets/hero-dashboard.png";
 import { useAppContext } from "@/context/AppContext";
 
 export const Hero = () => {
-  const { isLoggedIn, userData } = useAppContext();
+  const { isLoggedIn, userData, logout, axios } = useAppContext();
 
-  // ✅ SAFE ROLE-BASED PATH
+  //SAFE ROLE-BASED PATH
   const role = userData?.role?.trim().toLowerCase();
   const timetablePath =
     role === "teacher" ? "/teacher-timetable" : "/student-timetable";
 
   return (
-   <section
-id="hero"
-className={`relative min-h-screen bg-gradient-hero flex items-center overflow-hidden scroll-mt-20 ${
-isLoggedIn ? "pt-4" : "pt-16"
-}`}
->
+    <section
+      className={`relative min-h-screen bg-gradient-hero flex items-center overflow-hidden ${
+        isLoggedIn ? "pt-4" : "pt-16"
+      }`}
+    >
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse" />
@@ -29,12 +28,12 @@ isLoggedIn ? "pt-4" : "pt-16"
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* LEFT CONTENT */}
           <div className="space-y-8 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-sm font-medium text-primary border border-primary/20 mx-auto lg:mx-0">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-sm font-medium text-primary border border-primary/20">
               <Sparkles className="w-4 h-4" />
-             <span>Automated Resource Management</span>
+              <span>AI-Powered Resource Management</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
               {isLoggedIn ? (
                 <>
                   Welcome back{" "}
@@ -53,29 +52,29 @@ isLoggedIn ? "pt-4" : "pt-16"
               )}
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0">
+            <p className="text-xl text-muted-foreground max-w-2xl">
               {isLoggedIn
                 ? "Access your timetable, manage resources, and continue where you left off."
                 : "Automate timetable generation, balance faculty workload, and maximize resource utilization with our intelligent dashboard designed for educational institutions."}
             </p>
 
             {/* BUTTONS */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               {isLoggedIn ? (
-                <Link to={timetablePath} className="w-full sm:w-auto">
+                <Link to={timetablePath}>
                   <Button
                     size="lg"
-                    className="w-full sm:w-auto bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-lg hover:shadow-glow transition-all duration-300"
+                    className="bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-lg hover:shadow-glow transition-all duration-300"
                   >
                     View Timetable
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
               ) : (
-                <Link to="/login" className="w-full sm:w-auto">
+                <Link to="/login">
                   <Button
                     size="lg"
-                    className="w-full sm:w-auto bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-lg hover:shadow-glow transition-all duration-300"
+                    className="bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-lg hover:shadow-glow transition-all duration-300"
                   >
                     Get Started
                     <ArrowRight className="ml-2 w-5 h-5" />
@@ -84,18 +83,20 @@ isLoggedIn ? "pt-4" : "pt-16"
               )}
 
               {!isLoggedIn && (
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto border-2 hover:bg-secondary"
-                >
-                  View Demo
-                </Button>
+                <Link to="/#workflow" className="w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-2 hover:bg-secondary w-full sm:w-auto"
+                  >
+                    View Demo
+                  </Button>
+                </Link>
               )}
             </div>
 
             {/* STATS */}
-            <div className="flex flex-wrap gap-6 justify-center lg:justify-start pt-4">
+            <div className="flex gap-8 justify-center lg:justify-start pt-4">
               <div>
                 <div className="text-3xl font-bold text-foreground">100%</div>
                 <div className="text-sm text-muted-foreground">Automation</div>
@@ -114,7 +115,7 @@ isLoggedIn ? "pt-4" : "pt-16"
           </div>
 
           {/* RIGHT IMAGE */}
-          <div className="relative mt-12 lg:mt-0">
+          <div className="relative">
             <div className="relative rounded-2xl overflow-hidden shadow-2xl">
               <img
                 src={heroImage}

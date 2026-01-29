@@ -1,26 +1,37 @@
-// roomModel.js - UPDATED: Remove assignedSubjects field
 import mongoose from "mongoose";
-
 const roomSchema = new mongoose.Schema({
-    name: { type: String, required: true, unique: true },
-    type: { type: String, enum: ["Classroom", "Lab", "Tutorial"], required: true },
-    capacity: { type: Number, required: true },
-    labCategory: { type: String, required: function() { return this.type === "Lab"; } },
-    primaryYear: { type: String, enum: ["1st Year", "2nd Year", "3rd Year", "4th Year", "Shared"], default: "Shared" },
-    department: { type: String, default: "Software Engineering" }
+  name: { type: String, required: true },
+  type: { type: String, enum: ["Classroom", "Lab", "Tutorial"], required: true },
+  capacity: { type: Number, required: true },
+  labCategory: { type: String, required: function() { return this.type === "Lab"; } },
+  primaryYear: { type: String, enum: ["1st Year", "2nd Year", "3rd Year", "4th Year", "Shared"], default: "Shared" },
+  
+  department: { 
+    type: String, 
+    required: true,
+    enum: [
+      "Computer Engineering",
+      "IT Engineering",
+      "AI Engineering",
+      "Software Engineering", 
+      "Mechanical Engineering",
+      "Civil Engineering",
+      "Electrical Engineering"
+    ]
+  },
+
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "user" }
 }, { timestamps: true });
 
-// ✅ SIMPLIFIED: Pre-save middleware
+roomSchema.index({ name: 1, department: 1 }, { unique: true });
+
 roomSchema.pre('save', async function() {
-    // Ensure labs have a category
-    if (this.type === 'Lab' && this.labCategory === 'None') {
-        this.labCategory = 'General Purpose';
-    }
-    
-    // Theory classrooms default settings
-    if (this.type === 'Classroom') {
-        this.labCategory = 'None';
-    }
+  if (this.type === 'Lab' && this.labCategory === 'None') {
+    this.labCategory = 'General Purpose';
+  }
+  if (this.type === 'Classroom') {
+    this.labCategory = 'None';
+  }
 });
 
 const roomModel = mongoose.models.room || mongoose.model("room", roomSchema);

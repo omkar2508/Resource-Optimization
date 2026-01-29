@@ -1,8 +1,4 @@
 import userModel from "../models/userModel.js";
-
-/* ===============================
-   GET USER DATA
-================================ */
 export const getUserData = async (req, res) => {
   try {
     const userId = req.userId;
@@ -41,10 +37,7 @@ export const getUserData = async (req, res) => {
   }
 };
 
-/* ===============================
-   UPDATE STUDENT PROFILE
-   (ONLY BATCH)
-================================ */
+
 export const updateStudentProfile = async (req, res) => {
   const { batch } = req.body;
   const userId = req.userId;
