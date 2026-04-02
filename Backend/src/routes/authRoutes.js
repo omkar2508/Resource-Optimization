@@ -27,6 +27,10 @@ authRouter.post("/verify-account", userAuth, verifyEmail);
 // Authentication check
 authRouter.get('/is-auth', userAuth, isAuthenticated);
 
+authRouter.get('/me', userAuth, (req, res) => {
+  res.json({ success: true, isLoggedIn: true });
+});
+
 // Reset Password
 authRouter.post('/send-reset-otp', sendResetOtp);
 authRouter.post('/reset-password', resetPassword);

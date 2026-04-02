@@ -8,7 +8,6 @@ import EmailVerify from "./pages/EmailVerify";
 import ResetPassword from "./pages/ResetPassword";
 
 // Admin Pages
-import AdminLogin from "./pages/AdminLogin";
 import TimetableGenerator from "./pages/TimetableGenerator";
 import SavedTimetable from "./pages/SavedTimetable";
 import TeacherTimetable from "./pages/TeacherTimetable";
@@ -70,7 +69,19 @@ export default function App() {
         <Route path="/" element={<Index />} />
         <Route
           path="/login"
-          element={isLoggedIn ? <Navigate to="/" replace /> : <Login />}
+          element={
+            isLoggedIn ? (
+              <Navigate to="/" replace />
+            ) : isAdmin ? (
+              isSuperAdmin ? (
+                <Navigate to="/superadmin/dashboard" replace />
+              ) : (
+                <Navigate to="/admin/dashboard" replace />
+              )
+            ) : (
+              <Login />
+            )
+          }
         />
         <Route path="/email-verify" element={<EmailVerify />} />
         <Route path="/reset-password" element={<ResetPassword />} />
@@ -86,7 +97,7 @@ export default function App() {
                 <Navigate to="/admin/dashboard" replace />
               )
             ) : (
-              <AdminLogin />
+              <Login />
             )
           } 
         />
@@ -100,7 +111,7 @@ export default function App() {
             ) : isRegularAdmin ? (
               <Navigate to="/admin/dashboard" replace />
             ) : (
-              <Navigate to="/admin/login" replace />
+              <Navigate to="/login" replace />
             )
           }
         >
@@ -122,7 +133,7 @@ export default function App() {
             ) : isSuperAdmin ? (
               <Navigate to="/superadmin/dashboard" replace />
             ) : (
-              <Navigate to="/admin/login" replace />
+              <Navigate to="/login" replace />
             )
           }
         >

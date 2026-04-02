@@ -48,9 +48,7 @@ export const AppProvider = ({ children }) => {
   // USER AUTHENTICATION
   const checkUserAuth = async () => {
     try {
-      if(isLoggedIn){
-        const res = await axiosInstance.get("/api/auth/me");
-      }
+      const res = await axiosInstance.get("/api/auth/me");
       if (res.data.success && res.data.isLoggedIn) {
         setIsLoggedIn(true);
         await getUserData();
@@ -62,7 +60,6 @@ export const AppProvider = ({ children }) => {
       setIsLoggedIn(false);
       setUserData(null);
     }
-    console.log("User authentication check complete");  
   };
 
   const getUserData = async () => {
@@ -79,7 +76,8 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
+// REPLACE entire login function with this:
+  const login = async (email, password, expectedRole = null) => {
     try {
       const res = await axiosInstance.post("/api/auth/login", {
         email,
@@ -87,23 +85,31 @@ export const AppProvider = ({ children }) => {
       });
 
       if (res.data.success) {
+        await getUserData();
+
+        // Role enforcement: check actual role from DB
+        const res2 = await axiosInstance.get("/api/user/data");
+        const actualRole = res2.data?.userData?.role;
+
+        if (expectedRole && actualRole !== expectedRole) {
+          await axiosInstance.post("/api/auth/logout");
+          setIsLoggedIn(false);
+          setUserData(null);
+          toast.error(
+            `This is a ${actualRole} account. Please select "${actualRole}" role to login.`
+          );
+          return;
+        }
+
         toast.success("Login successful");
         setIsLoggedIn(true);
-        await getUserData();
         navigate("/");
       } else {
         toast.error(res.data.message || "Login failed");
       }
     } catch (error) {
-      // Handle specific error for admins trying to login here
       if (error.response?.status === 403) {
-        toast.error("Admins must log in at /admin/login", {
-          position: "top-center",
-          autoClose: 3000
-        });
-        setTimeout(() => {
-          navigate("/admin/login");
-        }, 2000);
+        toast.error("Admins must use the Admin login option.");
       } else {
         toast.error(error.response?.data?.message || "Login failed");
       }

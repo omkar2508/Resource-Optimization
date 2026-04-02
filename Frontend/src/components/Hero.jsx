@@ -83,7 +83,7 @@ export const Hero = () => {
               )}
 
               {!isLoggedIn && (
-                <Link to="/#workflow" className="w-full sm:w-auto">
+                <Link to="" className="w-full sm:w-auto">
                   <Button
                     size="lg"
                     variant="outline"

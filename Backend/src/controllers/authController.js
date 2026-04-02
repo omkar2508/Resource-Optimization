@@ -125,10 +125,10 @@ export const login = async (req, res) => {
 
         // BLOCK ADMIN/SUPERADMIN from user login
         if (user.role === "admin" || user.role === "superadmin") {
-            return res.status(403).json({ 
-                success: false, 
-                message: "Admins must log in at /admin/login" 
-            });
+        return res.status(403).json({
+            success: false,
+            message: "Admins must log in at /admin/login"
+        });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);

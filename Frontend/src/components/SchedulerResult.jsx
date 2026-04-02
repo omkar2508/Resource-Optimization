@@ -62,12 +62,12 @@ function TimetableDisplay({
         <h4 className="text-lg sm:text-xl font-bold text-gray-800 truncate flex-1 min-w-0">{title}</h4>
 
         <div className="flex flex-wrap gap-1.5 sm:gap-2 w-full sm:w-auto">
-          <button
+          {/* <button
             onClick={() => handleEdit(title, timetable, isTeacher)}
             className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm whitespace-nowrap"
           >
             Edit
-          </button>
+          </button> */}
 
           <button
             onClick={() => handleSave(title, timetable, isTeacher)}
@@ -338,7 +338,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
         )}
 
         {/* BREAK INTERRUPTION CONFLICTS */}
-        {hasBreakConflicts && (
+        {/* {hasBreakConflicts && (
           <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-400 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-lg">
             <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-red-900 flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
               <span>Break Interruption Detected ({breakInterruptedLabs.length} Lab{breakInterruptedLabs.length > 1 ? 's' : ''})</span>
@@ -419,7 +419,7 @@ const defaultSave = async (outerKey, table, isTeacher = false) => {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* ROOM CONFLICTS */}
         {roomConflicts.length > 0 && (
