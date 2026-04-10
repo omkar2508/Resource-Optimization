@@ -158,7 +158,6 @@ export default function SuperAdminDashboard() {
 function StatCard({ icon: Icon, title, value, color }) {
   const colorClasses = {
     blue: "from-blue-500 to-blue-600",
-    blue: "from-blue-500 to-blue-600",
     green: "from-green-500 to-green-600",
     orange: "from-orange-500 to-orange-600",
     pink: "from-pink-500 to-pink-600",
